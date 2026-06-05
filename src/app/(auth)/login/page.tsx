@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import { GradientAnimation } from '@/components/ui/GradientAnimation';
+import { useT } from '@/lib/i18n';
 import styles from './login.module.css';
 
 export default function LoginPage() {
   const router = useRouter();
+  const t = useT();
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,12 +30,12 @@ export default function LoginPage() {
       });
 
       if (res?.error) {
-        setErrorMsg('Invalid email or password');
+        setErrorMsg(t('login.errorInvalid'));
       } else {
         router.push('/dashboard');
       }
     } catch (error) {
-      setErrorMsg('Something went wrong. Please try again.');
+      setErrorMsg(t('login.errorGeneric'));
     } finally {
       setIsLoading(false);
     }
@@ -45,24 +47,24 @@ export default function LoginPage() {
       
       <div className={styles.contentWrapper}>
         <div className={styles.branding}>
-          <h1>Family Finance</h1>
-          <p>Your journey to financial freedom starts here.</p>
+          <h1>{t('login.brand')}</h1>
+          <p>{t('login.tagline')}</p>
         </div>
 
         <TextureCard className={styles.loginCard}>
           <div className={styles.cardHeader}>
-            <h2>Welcome Back</h2>
-            <p>Enter your credentials to access your dashboard</p>
+            <h2>{t('login.welcome')}</h2>
+            <p>{t('login.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
             {errorMsg && <div className={styles.errorMessage} style={{color: 'red', marginBottom: '1rem', fontSize: '0.875rem'}}>{errorMsg}</div>}
             <div className={styles.inputGroup}>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t('login.email')}</label>
               <input 
                 type="email" 
                 id="email" 
-                placeholder="you@example.com" 
+                placeholder={t('login.emailPlaceholder')} 
                 required 
                 className="focus-ring"
                 value={email}
@@ -71,11 +73,11 @@ export default function LoginPage() {
             </div>
             
             <div className={styles.inputGroup}>
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t('login.password')}</label>
               <input 
                 type="password" 
                 id="password" 
-                placeholder="••••••••" 
+                placeholder={t('login.passwordPlaceholder')} 
                 required 
                 className="focus-ring"
                 value={password}
@@ -84,7 +86,7 @@ export default function LoginPage() {
             </div>
 
             <div className={styles.forgotPassword}>
-              <Link href="/forgot-password">Forgot password?</Link>
+              <Link href="/forgot-password">{t('login.forgotPassword')}</Link>
             </div>
 
             <button 
@@ -92,13 +94,13 @@ export default function LoginPage() {
               className={`${styles.submitButton} focus-ring`}
               disabled={isLoading}
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? t('login.signingIn') : t('login.signInBtn')}
             </button>
           </form>
 
           <div className={styles.cardFooter}>
             <p>
-              Don't have an account? <Link href="/register">Sign up</Link>
+              {t('login.noAccount')} <Link href="/register">{t('login.signUpLink')}</Link>
             </p>
           </div>
         </TextureCard>

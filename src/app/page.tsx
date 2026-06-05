@@ -1,6 +1,12 @@
+'use client';
+
 import Link from "next/link";
+import { useT } from '@/lib/i18n';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function Home() {
+  const t = useT();
+  
   return (
     <div style={{
       minHeight: '100vh',
@@ -42,10 +48,11 @@ export default function Home() {
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
         }}>
-          💰 Family Finance
+          {t('nav.brand')}
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <Link href="/auth/login" style={{
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <LanguageSwitcher />
+          <Link href="/login" style={{
             padding: '0.6rem 1.5rem',
             borderRadius: '980px',
             border: '1px solid rgba(255,255,255,0.2)',
@@ -55,9 +62,9 @@ export default function Home() {
             transition: 'all 0.3s ease',
             textDecoration: 'none',
           }}>
-            Iniciar Sesión
+            {t('nav.signIn')}
           </Link>
-          <Link href="/auth/register" style={{
+          <Link href="/register" style={{
             padding: '0.6rem 1.5rem',
             borderRadius: '980px',
             background: '#0071e3',
@@ -68,7 +75,7 @@ export default function Home() {
             transition: 'all 0.3s ease',
             textDecoration: 'none',
           }}>
-            Crear Cuenta
+            {t('nav.signUp')}
           </Link>
         </div>
       </nav>
@@ -97,7 +104,7 @@ export default function Home() {
           marginBottom: '2rem',
           letterSpacing: '0.02em',
         }}>
-          ✨ Finanzas familiares inteligentes
+          {t('landing.badge')}
         </div>
 
         <h1 style={{
@@ -108,13 +115,13 @@ export default function Home() {
           maxWidth: '800px',
           margin: '0 0 1.5rem 0',
         }}>
-          Toma el control de{' '}
+          {t('landing.heroTitle')}{' '}
           <span style={{
             background: 'linear-gradient(135deg, #0071e3 0%, #64d2ff 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
           }}>
-            tus finanzas
+            {t('landing.heroHighlight')}
           </span>
         </h1>
 
@@ -125,11 +132,11 @@ export default function Home() {
           lineHeight: 1.5,
           margin: '0 0 2.5rem 0',
         }}>
-          Conecta tus bancos, visualiza tus activos y pasivos, y crea estrategias de pago inteligentes. Todo en una sola plataforma segura para tu familia.
+          {t('landing.heroDesc')}
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-          <Link href="/auth/register" style={{
+          <Link href="/register" style={{
             padding: '0.9rem 2.2rem',
             borderRadius: '980px',
             background: '#0071e3',
@@ -140,9 +147,9 @@ export default function Home() {
             textDecoration: 'none',
             transition: 'all 0.3s ease',
           }}>
-            Comenzar Gratis →
+            {t('landing.ctaPrimary')}
           </Link>
-          <Link href="/auth/login" style={{
+          <Link href="/login" style={{
             padding: '0.9rem 2.2rem',
             borderRadius: '980px',
             border: '1px solid rgba(255,255,255,0.25)',
@@ -153,7 +160,7 @@ export default function Home() {
             textDecoration: 'none',
             transition: 'all 0.3s ease',
           }}>
-            Ya tengo cuenta
+            {t('landing.ctaSecondary')}
           </Link>
         </div>
 
@@ -167,9 +174,9 @@ export default function Home() {
           marginTop: '5rem',
         }}>
           {[
-            { icon: '🏦', title: 'Conexión Bancaria', desc: 'Vincula tus cuentas automáticamente con Plaid en segundos.' },
-            { icon: '📊', title: 'Activos & Pasivos', desc: 'El sistema clasifica tus cuentas, tarjetas y préstamos.' },
-            { icon: '🎯', title: 'Estrategia de Pago', desc: 'Avalancha o Bola de Nieve. Elige y visualiza tu libertad.' },
+            { icon: '🏦', title: t('landing.feature1Title'), desc: t('landing.feature1Desc') },
+            { icon: '📊', title: t('landing.feature2Title'), desc: t('landing.feature2Desc') },
+            { icon: '🎯', title: t('landing.feature3Title'), desc: t('landing.feature3Desc') },
           ].map((f, i) => (
             <div key={i} style={{
               padding: '2rem',
@@ -196,7 +203,7 @@ export default function Home() {
         position: 'relative',
         zIndex: 10,
       }}>
-        © {new Date().getFullYear()} Family Finance. Todos los derechos reservados.
+        {t('landing.footer').replace('{year}', new Date().getFullYear().toString())}
       </footer>
     </div>
   );

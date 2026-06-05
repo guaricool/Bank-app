@@ -1,8 +1,13 @@
+'use client';
+
 import React from 'react';
 import { TextureCard } from '@/components/ui/TextureCard';
+import { useT } from '@/lib/i18n';
 import styles from './page.module.css';
 
 export default function CardsPage() {
+  const t = useT();
+  
   return (
     <div className={styles.container}>
       <div className={styles.cardsGrid}>
@@ -16,11 +21,11 @@ export default function CardsPage() {
           <div className={styles.cardNumber}>**** **** **** 4281</div>
           <div className={styles.cardFooter}>
             <div className={styles.cardInfo}>
-              <div className={styles.cardLabel}>Cardholder</div>
+              <div className={styles.cardLabel}>{t('cards.cardholder')}</div>
               <div className={styles.cardValue}>John Doe</div>
             </div>
             <div className={styles.cardInfo}>
-              <div className={styles.cardLabel}>Expires</div>
+              <div className={styles.cardLabel}>{t('cards.expires')}</div>
               <div className={styles.cardValue}>12/28</div>
             </div>
             <div className={styles.cardLogo}>Visa</div>
@@ -36,11 +41,11 @@ export default function CardsPage() {
           <div className={styles.cardNumber}>**** **** **** 8832</div>
           <div className={styles.cardFooter}>
             <div className={styles.cardInfo}>
-              <div className={styles.cardLabel}>Cardholder</div>
+              <div className={styles.cardLabel}>{t('cards.cardholder')}</div>
               <div className={styles.cardValue}>Jane Doe</div>
             </div>
             <div className={styles.cardInfo}>
-              <div className={styles.cardLabel}>Expires</div>
+              <div className={styles.cardLabel}>{t('cards.expires')}</div>
               <div className={styles.cardValue}>09/27</div>
             </div>
             <div className={styles.cardLogo}>Mastercard</div>
@@ -50,21 +55,21 @@ export default function CardsPage() {
         {/* Add Card Button */}
         <div className={styles.addCard}>
           <div className={styles.addIcon}>+</div>
-          <div>Add New Card</div>
+          <div>{t('cards.addNew')}</div>
         </div>
 
       </div>
 
       <TextureCard>
-        <h2 className={styles.sectionTitle}>Card Settings</h2>
+        <h2 className={styles.sectionTitle}>{t('cards.cardSettings')}</h2>
         <div className={styles.settingsList}>
           
           <div className={styles.settingItem}>
             <div className={styles.settingInfo}>
               <div className={styles.settingIcon}>🔒</div>
               <div>
-                <div className={styles.settingName}>Freeze Card</div>
-                <div className={styles.settingDesc}>Temporarily disable your card if lost or stolen</div>
+                <div className={styles.settingName}>{t('cards.freezeCard')}</div>
+                <div className={styles.settingDesc}>{t('cards.freezeDesc')}</div>
               </div>
             </div>
             <div className={styles.toggle}>
@@ -76,8 +81,8 @@ export default function CardsPage() {
             <div className={styles.settingInfo}>
               <div className={styles.settingIcon}>✈️</div>
               <div>
-                <div className={styles.settingName}>International Usage</div>
-                <div className={styles.settingDesc}>Allow transactions outside your home country</div>
+                <div className={styles.settingName}>{t('cards.internationalUsage')}</div>
+                <div className={styles.settingDesc}>{t('cards.internationalDesc')}</div>
               </div>
             </div>
             <div className={`${styles.toggle} ${styles.toggleActive}`}>
@@ -89,8 +94,8 @@ export default function CardsPage() {
             <div className={styles.settingInfo}>
               <div className={styles.settingIcon}>📱</div>
               <div>
-                <div className={styles.settingName}>Online Payments</div>
-                <div className={styles.settingDesc}>Enable internet and mail order transactions</div>
+                <div className={styles.settingName}>{t('cards.onlinePayments')}</div>
+                <div className={styles.settingDesc}>{t('cards.onlineDesc')}</div>
               </div>
             </div>
             <div className={`${styles.toggle} ${styles.toggleActive}`}>

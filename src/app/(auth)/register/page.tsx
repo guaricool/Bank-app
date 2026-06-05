@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import { GradientAnimation } from '@/components/ui/GradientAnimation';
+import { useT } from '@/lib/i18n';
 import styles from './register.module.css';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useT();
   const [isLoading, setIsLoading] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -32,7 +34,7 @@ export default function RegisterPage() {
       const data = await res.json();
       
       if (!res.ok) {
-        setErrorMsg(data.error || 'Registration failed');
+        setErrorMsg(data.error || t('register.errorRegFailed'));
         setIsLoading(false);
         return;
       }
@@ -45,13 +47,13 @@ export default function RegisterPage() {
       });
 
       if (signInRes?.error) {
-        setErrorMsg('Registered, but login failed. Please sign in manually.');
+        setErrorMsg(t('register.errorLoginFailed'));
         setIsLoading(false);
       } else {
         router.push('/onboarding');
       }
     } catch (error) {
-      setErrorMsg('Something went wrong. Please try again.');
+      setErrorMsg(t('register.errorGeneric'));
       setIsLoading(false);
     }
   };
@@ -62,25 +64,25 @@ export default function RegisterPage() {
       
       <div className={styles.contentWrapper}>
         <div className={styles.branding}>
-          <h1>Family Finance</h1>
-          <p>Join us to take control of your future.</p>
+          <h1>{t('register.brand')}</h1>
+          <p>{t('register.tagline')}</p>
         </div>
 
         <TextureCard className={styles.registerCard}>
           <div className={styles.cardHeader}>
-            <h2>Create Account</h2>
-            <p>Set up your family workspace</p>
+            <h2>{t('register.title')}</h2>
+            <p>{t('register.subtitle')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
             {errorMsg && <div className={styles.errorMessage} style={{color: 'red', marginBottom: '1rem', fontSize: '0.875rem'}}>{errorMsg}</div>}
             <div className={styles.nameRow}>
               <div className={styles.inputGroup}>
-                <label htmlFor="firstName">First Name</label>
+                <label htmlFor="firstName">{t('register.firstName')}</label>
                 <input 
                   type="text" 
                   id="firstName" 
-                  placeholder="John" 
+                  placeholder={t('register.firstNamePlaceholder')} 
                   required 
                   className="focus-ring"
                   value={firstName}
@@ -88,11 +90,11 @@ export default function RegisterPage() {
                 />
               </div>
               <div className={styles.inputGroup}>
-                <label htmlFor="lastName">Last Name</label>
+                <label htmlFor="lastName">{t('register.lastName')}</label>
                 <input 
                   type="text" 
                   id="lastName" 
-                  placeholder="Doe" 
+                  placeholder={t('register.lastNamePlaceholder')} 
                   required 
                   className="focus-ring"
                   value={lastName}
@@ -102,11 +104,11 @@ export default function RegisterPage() {
             </div>
 
             <div className={styles.inputGroup}>
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">{t('register.email')}</label>
               <input 
                 type="email" 
                 id="email" 
-                placeholder="you@example.com" 
+                placeholder={t('register.emailPlaceholder')} 
                 required 
                 className="focus-ring"
                 value={email}
@@ -115,11 +117,11 @@ export default function RegisterPage() {
             </div>
             
             <div className={styles.inputGroup}>
-              <label htmlFor="password">Password</label>
+              <label htmlFor="password">{t('register.password')}</label>
               <input 
                 type="password" 
                 id="password" 
-                placeholder="Create a strong password" 
+                placeholder={t('register.passwordPlaceholder')} 
                 required 
                 className="focus-ring"
                 value={password}
@@ -132,17 +134,17 @@ export default function RegisterPage() {
               className={`${styles.submitButton} focus-ring`}
               disabled={isLoading}
             >
-              {isLoading ? 'Creating account...' : 'Sign Up'}
+              {isLoading ? t('register.creating') : t('register.signUpBtn')}
             </button>
             
             <p className={styles.terms}>
-              By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+              {t('register.termsPrefix')}<a href="#">{t('register.termsLink')}</a> and <a href="#">{t('register.privacyLink')}</a>.
             </p>
           </form>
 
           <div className={styles.cardFooter}>
             <p>
-              Already have an account? <Link href="/login">Sign in</Link>
+              {t('register.hasAccount')} <Link href="/login">{t('register.signInLink')}</Link>
             </p>
           </div>
         </TextureCard>

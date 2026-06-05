@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { TextureCard } from '@/components/ui/TextureCard';
+import { useT } from '@/lib/i18n';
 
 type Account = {
   id: string;
@@ -19,6 +20,7 @@ type Account = {
 };
 
 export default function AccountsList() {
+  const t = useT();
   const [assets, setAssets] = useState<Account[]>([]);
   const [liabilities, setLiabilities] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function AccountsList() {
   }, []);
 
   if (loading) {
-    return <div style={{ color: 'rgba(255,255,255,0.7)', padding: '20px' }}>Loading accounts...</div>;
+    return <div style={{ color: 'rgba(255,255,255,0.7)', padding: '20px' }}>{t('accounts.loading')}</div>;
   }
 
   if (assets.length === 0 && liabilities.length === 0) {
@@ -63,10 +65,10 @@ export default function AccountsList() {
       {/* ASSETS SECTION */}
       <div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#fff', marginBottom: '16px' }}>
-          Assets (Checking, Savings)
+          {t('accounts.assetsTitle')}
         </h2>
         {assets.length === 0 ? (
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>No bank accounts linked.</p>
+          <p style={{ color: 'rgba(255,255,255,0.5)' }}>{t('accounts.noAssets')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {assets.map(acc => (
@@ -84,7 +86,7 @@ export default function AccountsList() {
                     </div>
                     {acc.availableBalance !== null && acc.availableBalance !== acc.currentBalance && (
                       <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-                        Available: {formatCurrency(acc.availableBalance, acc.isoCurrencyCode)}
+                        {t('accounts.available')} {formatCurrency(acc.availableBalance, acc.isoCurrencyCode)}
                       </div>
                     )}
                   </div>
@@ -98,10 +100,10 @@ export default function AccountsList() {
       {/* LIABILITIES SECTION */}
       <div>
         <h2 style={{ fontSize: '1.25rem', fontWeight: '600', color: '#fff', marginBottom: '16px' }}>
-          Liabilities (Credit Cards, Loans)
+          {t('accounts.liabilitiesTitle')}
         </h2>
         {liabilities.length === 0 ? (
-          <p style={{ color: 'rgba(255,255,255,0.5)' }}>No credit cards linked.</p>
+          <p style={{ color: 'rgba(255,255,255,0.5)' }}>{t('accounts.noLiabilities')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {liabilities.map(acc => (
@@ -118,7 +120,7 @@ export default function AccountsList() {
                       {formatCurrency(acc.currentBalance, acc.isoCurrencyCode)}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
-                      Current Balance
+                      {t('accounts.currentBalance')}
                     </div>
                   </div>
                 </div>

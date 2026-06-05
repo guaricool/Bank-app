@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { usePlaidLink } from 'react-plaid-link';
+import { useT } from '@/lib/i18n';
 
 interface PlaidLinkButtonProps {
   userId: string;
@@ -10,6 +11,7 @@ interface PlaidLinkButtonProps {
 }
 
 export default function PlaidLinkButton({ userId, onSuccessCallback, className }: PlaidLinkButtonProps) {
+  const t = useT();
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -82,7 +84,7 @@ export default function PlaidLinkButton({ userId, onSuccessCallback, className }
         boxShadow: 'var(--shadow-md)'
       } : undefined}
     >
-      {loading ? 'Preparando conexión...' : 'Vincular Banco Seguro'}
+      {loading ? t('plaid.preparing') : t('plaid.linkBank')}
     </button>
   );
 }
