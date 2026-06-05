@@ -171,7 +171,7 @@ export default function StrategyDashboard() {
                     contentStyle={{ backgroundColor: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                     itemStyle={{ color: '#10b981' }}
                     labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem' }}
-                    formatter={(value: number) => [`$${value.toLocaleString()}`, 'Deuda Restante']}
+                    formatter={(value: any) => [`$${value.toLocaleString()}`, 'Deuda Restante']}
                     labelFormatter={(label) => `Mes ${label}`}
                   />
                   <Area 
