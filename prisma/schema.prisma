@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL") // Uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // Uses a direct connection for migrations
+}
+
+model Family {
+  id        String   @id @default(cuid())
+  name      String
+  users     User[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          String    @default("MEMBER")
+  familyId      String?
+  family        Family?   @relation(fields: [familyId], references: [id])
+  items         PlaidItem[]
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model PlaidItem {
+  id              String   @id @default(cuid())
+  itemId          String   @unique
+  accessToken     String   // MUST BE ENCRYPTED IN PRODUCTION
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  institutionId   String
+  institutionName String
+  status          String   @default("GOOD")
+  syncCursor      String?
+  accounts        BankAccount[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model BankAccount {
+  id               String   @id @default(cuid())
+  accountId        String   @unique
+  itemId           String
+  item             PlaidItem @relation(fields: [itemId], references: [id])
+  name             String
+  officialName     String?
+  mask             String?
+  type             String   
+  subtype          String?  
+  currentBalance   Float?
+  availableBalance Float?
+  isoCurrencyCode  String?
+  apr              Float?   // Annual Percentage Rate
+  minimumPayment   Float?   // Minimum monthly payment
+  transactions     Transaction[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model Transaction {
+  id               String   @id @default(cuid())
+  transactionId    String   @unique
+  accountId        String
+  account          BankAccount @relation(fields: [accountId], references: [id])
+  amount           Float    
+  date             DateTime
+  name             String
+  merchantName     String?
+  pending          Boolean  @default(false)
+  personalFinanceCategory String? 
+  isRemoved        Boolean  @default(false) 
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([accountId])
+  @@index([date])
+}
+
+model ReconciliationMatch {
+  id              String   @id @default(cuid())
+  debitTxId       String   @unique // Transacción de salida (checking)
+  creditTxId      String   @unique // Transacción de entrada (tarjeta de crédito/préstamo)
+  amount          Float
+  matchDate       DateTime @default(now())
+  status          String   // "MATCHED", "DISCREPANCY"
+  discrepancyAmount Float? // Diferencia con el plan
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

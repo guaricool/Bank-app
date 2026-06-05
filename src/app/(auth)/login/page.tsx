@@ -2,22 +2,45 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import { GradientAnimation } from '@/components/ui/GradientAnimation';
 import styles from './login.module.css';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate auth
-    setTimeout(() => setIsLoading(false), 1500);
+    setErrorMsg('');
+    
+    try {
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setErrorMsg('Invalid email or password');
+      } else {
+        router.push('/dashboard');
+      }
+    } catch (error) {
+      setErrorMsg('Something went wrong. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className={styles.pageContainer}>
+    <div className={`${styles.pageContainer} force-dark-theme`}>
       <GradientAnimation />
       
       <div className={styles.contentWrapper}>
@@ -33,6 +56,7 @@ export default function LoginPage() {
           </div>
 
           <form onSubmit={handleSubmit} className={styles.form}>
+            {errorMsg && <div className={styles.errorMessage} style={{color: 'red', marginBottom: '1rem', fontSize: '0.875rem'}}>{errorMsg}</div>}
             <div className={styles.inputGroup}>
               <label htmlFor="email">Email</label>
               <input 
@@ -41,6 +65,8 @@ export default function LoginPage() {
                 placeholder="you@example.com" 
                 required 
                 className="focus-ring"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             
@@ -52,6 +78,8 @@ export default function LoginPage() {
                 placeholder="••••••••" 
                 required 
                 className="focus-ring"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 

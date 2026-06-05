@@ -25,13 +25,13 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
-  background: linear-gradient(to right, var(--foreground), #888);
+  background: linear-gradient(to right, #ffffff, #aaaaaa);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .branding p {
-  color: var(--text-secondary, #666);
+  color: rgba(255, 255, 255, 0.8);
   font-size: 1.1rem;
 }
 
@@ -48,10 +48,12 @@
   font-size: 1.5rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.1);
 }
 
 .cardHeader p {
-  color: var(--text-secondary, #666);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 0.95rem;
 }
 
@@ -62,45 +64,51 @@
 }
 
 .nameRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 1rem;
-}
-
-.nameRow .inputGroup {
-  flex: 1;
+  width: 100%;
 }
 
 .inputGroup {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  width: 100%;
 }
 
 .inputGroup label {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--foreground);
+  color: #ffffff;
 }
 
 .inputGroup input {
+  width: 100%;
   padding: 0.75rem 1rem;
   border-radius: 10px;
-  border: 1px solid var(--border-light, #eaeaea);
-  background: var(--background);
-  color: var(--foreground);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1); /* Slightly more opaque background */
+  color: #ffffff;
   font-family: inherit;
   font-size: 1rem;
   transition: all var(--transition-fast, 0.2s ease);
 }
 
+.inputGroup input::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 1;
+}
+
 .inputGroup input:focus {
   outline: none;
   border-color: var(--accent-primary, #007aff);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .submitButton {
-  background: var(--foreground);
-  color: var(--background);
+  background: #ffffff;
+  color: #000000;
   border: none;
   border-radius: 10px;
   padding: 0.875rem;
@@ -109,6 +117,7 @@
   cursor: pointer;
   transition: transform var(--transition-fast, 0.2s ease), opacity var(--transition-fast, 0.2s ease);
   margin-top: 0.5rem;
+  box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
 }
 
 .submitButton:hover {
@@ -127,13 +136,13 @@
 
 .terms {
   font-size: 0.8rem;
-  color: var(--text-secondary, #666);
+  color: rgba(255, 255, 255, 0.6);
   text-align: center;
   margin-top: -0.5rem;
 }
 
 .terms a {
-  color: var(--foreground);
+  color: #ffffff;
   text-decoration: underline;
 }
 
@@ -141,13 +150,13 @@
   margin-top: 2rem;
   text-align: center;
   font-size: 0.9rem;
-  color: var(--text-secondary, #666);
-  border-top: 1px solid var(--border-light, #eaeaea);
+  color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
   padding-top: 1.5rem;
 }
 
 .cardFooter a {
-  color: var(--foreground);
+  color: #ffffff;
   font-weight: 600;
 }
 
@@ -156,6 +165,6 @@
     padding: 1.5rem;
   }
   .nameRow {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 }

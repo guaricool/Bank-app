@@ -4,8 +4,12 @@
   border-radius: 20px;
   background-color: var(--surface-primary);
   border: 1px solid var(--border-light);
+  border-top: 1px solid rgba(255, 255, 255, 0.45);
+  border-left: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: var(--shadow-glass);
   transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
 }
 
 .card:hover {
