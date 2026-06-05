@@ -123,6 +123,10 @@ const en = {
   'settings.emailAlertsDesc': 'Receive daily summary emails',
   'settings.pushNotifications': 'Push Notifications',
   'settings.pushNotificationsDesc': 'Get alerts for large transactions',
+  'settings.alerts.deposits': 'Deposits',
+  'settings.alerts.withdrawals': 'Withdrawals',
+  'settings.alerts.payments': 'Payments',
+  'settings.alerts.closing': 'Closing Difference',
 
   // Strategy
   'strategy.chooseStrategy': 'Choose Your Strategy',

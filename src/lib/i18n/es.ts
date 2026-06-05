@@ -125,6 +125,10 @@ const es: Record<TranslationKey, string> = {
   'settings.emailAlertsDesc': 'Recibe resúmenes diarios por correo',
   'settings.pushNotifications': 'Notificaciones Push',
   'settings.pushNotificationsDesc': 'Recibe alertas por transacciones grandes',
+  'settings.alerts.deposits': 'Depósitos',
+  'settings.alerts.withdrawals': 'Retiros',
+  'settings.alerts.payments': 'Pagos',
+  'settings.alerts.closing': 'Diferencia de Cierre',
 
   // Strategy
   'strategy.chooseStrategy': 'Elige tu Estrategia',
