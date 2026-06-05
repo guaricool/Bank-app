@@ -27,9 +27,9 @@ export async function GET() {
     });
 
     // Categorize into Assets (depository, investment) and Liabilities (credit, loan)
-    const assets = accounts.filter(acc => acc.type === 'depository' || acc.type === 'investment');
-    const liabilities = accounts.filter(acc => acc.type === 'credit' || acc.type === 'loan');
-    const other = accounts.filter(acc => !['depository', 'investment', 'credit', 'loan'].includes(acc.type));
+    const assets = accounts.filter((acc: any) => acc.type === 'depository' || acc.type === 'investment');
+    const liabilities = accounts.filter((acc: any) => acc.type === 'credit' || acc.type === 'loan');
+    const other = accounts.filter((acc: any) => !['depository', 'investment', 'credit', 'loan'].includes(acc.type));
 
     return NextResponse.json({
       success: true,
