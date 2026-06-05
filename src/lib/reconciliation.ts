@@ -106,7 +106,55 @@ export async function reconcileTransactions(userId: string) {
       }
     }
 
-    console.log(`[Reconciliation] Finished for user ${userId}. Matched ${matchCount} pairs.`);
+    // 5. Handle Discrepancies and send alerts
+    // For credits that are older than the 5 day match window and STILL unmatched, 
+    // flag them as discrepancies and alert the user.
+    const user = await prisma.user.findUnique({ where: { id: userId }});
+    const prefs = user?.alertPreferences as any || {};
+
+    let discrepancyCount = 0;
+    
+    // We consider it a permanent discrepancy if it's older than 7 days and unmatched.
+    const PERMANENT_DISCREPANCY_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+
+    for (const creditTx of unmatchedCredits) {
+      const creditDate = creditTx.date.getTime();
+      
+      if (now - creditDate > PERMANENT_DISCREPANCY_WINDOW_MS) {
+        // Check if we already logged this discrepancy
+        const existingDiscrepancy = await prisma.reconciliationMatch.findFirst({
+          where: { creditTxId: creditTx.transactionId, status: 'DISCREPANCY' }
+        });
+
+        if (!existingDiscrepancy) {
+          // Record the discrepancy
+          await prisma.reconciliationMatch.create({
+            data: {
+              debitTxId: `UNMATCHED_${creditTx.transactionId}`,
+              creditTxId: creditTx.transactionId,
+              amount: Math.abs(creditTx.amount),
+              status: 'DISCREPANCY',
+              discrepancyAmount: Math.abs(creditTx.amount)
+            }
+          });
+          
+          discrepancyCount++;
+
+          // Send Alert Email
+          if (user?.email && prefs.closingDiscrepancy) {
+            const { sendAlertEmail } = await import('@/lib/email');
+            await sendAlertEmail(
+              user.email,
+              'Closing Discrepancy Alert',
+              `A credit card payment of $${Math.abs(creditTx.amount)} on ${creditTx.date.toDateString()} could not be matched with any withdrawal from your checking accounts. Please review your transactions.`
+            );
+          }
+        }
+      }
+    }
+
+    console.log(`[Reconciliation] Finished for user ${userId}. Matched ${matchCount} pairs. Found ${discrepancyCount} new discrepancies.`);
     return matchCount;
   } catch (error) {
     console.error(`[Reconciliation] Error for user ${userId}:`, error);

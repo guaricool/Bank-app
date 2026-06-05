@@ -1,12 +1,26 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import { useT } from '@/lib/i18n';
 import styles from './page.module.css';
 
 export default function TransactionsPage() {
   const t = useT();
+  const [groupedTransactions, setGroupedTransactions] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/transactions')
+      .then(res => res.json())
+      .then(data => {
+        if (data.grouped) {
+          setGroupedTransactions(data.grouped);
+        }
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className={styles.container}>
@@ -16,90 +30,51 @@ export default function TransactionsPage() {
         <button className={styles.filterBtn}>{t('transactions.expenses')}</button>
       </div>
 
-      <TextureCard>
-        <div className={styles.transactionList}>
-          {/* Item 1 */}
-          <div className={styles.transactionItem}>
-            <div className={styles.txInfo}>
-              <div className={styles.txIcon}>🛒</div>
-              <div className={styles.txDetails}>
-                <div className={styles.txName}>Whole Foods Market</div>
-                <div className={styles.txDate}>Today, 2:45 PM</div>
-                <div><span className={styles.txCategory}>{t('transactions.groceries')}</span></div>
-              </div>
+      {loading ? (
+        <p>Loading transactions...</p>
+      ) : (
+        Object.keys(groupedTransactions).length === 0 ? (
+          <TextureCard>
+            <p style={{ padding: '2rem', textAlign: 'center' }}>No transactions found.</p>
+          </TextureCard>
+        ) : (
+          Object.entries(groupedTransactions).map(([category, txs]) => (
+            <div key={category} style={{ marginBottom: '2rem' }}>
+              <h3 style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.8)' }}>
+                {category} ({txs.length})
+              </h3>
+              <TextureCard>
+                <div className={styles.transactionList}>
+                  {txs.map((tx) => (
+                    <div key={tx.id} className={styles.transactionItem}>
+                      <div className={styles.txInfo}>
+                        <div className={styles.txIcon}>
+                          {category === 'Grocery' ? '🛒' : 
+                           category === 'Dining' ? '🍽️' : 
+                           category === 'Gas' ? '⛽' : 
+                           category === 'Housing' ? '🏠' : '💳'}
+                        </div>
+                        <div className={styles.txDetails}>
+                          <div className={styles.txName}>{tx.merchantName || tx.name}</div>
+                          <div className={styles.txDate}>{new Date(tx.date).toLocaleDateString()}</div>
+                          <div><span className={styles.txCategory}>{category}</span></div>
+                        </div>
+                      </div>
+                      <div className={styles.txRight}>
+                        <div className={`${styles.txAmount} ${tx.amount < 0 ? styles.positive : styles.negative}`}>
+                          {tx.amount < 0 ? '+' : '-'}${Math.abs(tx.amount).toFixed(2)}
+                        </div>
+                        <div className={styles.txStatus}>{tx.pending ? t('transactions.pending') : t('transactions.completed')}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </TextureCard>
             </div>
-            <div className={styles.txRight}>
-              <div className={`${styles.txAmount} ${styles.negative}`}>-$124.50</div>
-              <div className={styles.txStatus}>{t('transactions.completed')}</div>
-            </div>
-          </div>
-
-          {/* Item 2 */}
-          <div className={styles.transactionItem}>
-            <div className={styles.txInfo}>
-              <div className={styles.txIcon}>☕</div>
-              <div className={styles.txDetails}>
-                <div className={styles.txName}>Starbucks</div>
-                <div className={styles.txDate}>Yesterday, 9:20 AM</div>
-                <div><span className={styles.txCategory}>{t('transactions.coffee')}</span></div>
-              </div>
-            </div>
-            <div className={styles.txRight}>
-              <div className={`${styles.txAmount} ${styles.negative}`}>-$5.40</div>
-              <div className={styles.txStatus}>{t('transactions.completed')}</div>
-            </div>
-          </div>
-
-          {/* Item 3 */}
-          <div className={styles.transactionItem}>
-            <div className={styles.txInfo}>
-              <div className={styles.txIcon}>💼</div>
-              <div className={styles.txDetails}>
-                <div className={styles.txName}>Salary Deposit</div>
-                <div className={styles.txDate}>Mon, 1:00 AM</div>
-                <div><span className={styles.txCategory}>{t('transactions.income')}</span></div>
-              </div>
-            </div>
-            <div className={styles.txRight}>
-              <div className={`${styles.txAmount} ${styles.positive}`}>+$4,250.00</div>
-              <div className={styles.txStatus}>{t('transactions.completed')}</div>
-            </div>
-          </div>
-
-          {/* Item 4 */}
-          <div className={styles.transactionItem}>
-            <div className={styles.txInfo}>
-              <div className={styles.txIcon}>🎬</div>
-              <div className={styles.txDetails}>
-                <div className={styles.txName}>Netflix Subscription</div>
-                <div className={styles.txDate}>Sun, 10:00 AM</div>
-                <div><span className={styles.txCategory}>{t('transactions.entertainment')}</span></div>
-              </div>
-            </div>
-            <div className={styles.txRight}>
-              <div className={`${styles.txAmount} ${styles.negative}`}>-$15.99</div>
-              <div className={styles.txStatus}>{t('transactions.completed')}</div>
-            </div>
-          </div>
-
-          {/* Item 5 */}
-          <div className={styles.transactionItem}>
-            <div className={styles.txInfo}>
-              <div className={styles.txIcon}>📱</div>
-              <div className={styles.txDetails}>
-                <div className={styles.txName}>Apple Store</div>
-                <div className={styles.txDate}>Sat, 3:30 PM</div>
-                <div><span className={styles.txCategory}>{t('transactions.electronics')}</span></div>
-              </div>
-            </div>
-            <div className={styles.txRight}>
-              <div className={`${styles.txAmount} ${styles.negative}`}>-$89.00</div>
-              <div className={styles.txStatus}>{t('transactions.pending')}</div>
-            </div>
-          </div>
-
-        </div>
-      </TextureCard>
+          ))
+        )
+      )}
     </div>
   );
 }
+

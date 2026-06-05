@@ -22,10 +22,33 @@ export async function POST(request: Request) {
         name,
         email,
         password: hashedPassword,
+        // Set default preferences for alerts
+        alertPreferences: {
+          deposits: true,
+          withdrawals: true,
+          payments: true,
+          closingDiscrepancy: true
+        }
       },
     });
 
-    return NextResponse.json({ success: true, userId: user.id }, { status: 201 });
+    // Generate Verification Token
+    const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24); // 24 hours
+
+    await prisma.verificationToken.create({
+      data: {
+        identifier: email,
+        token,
+        expires
+      }
+    });
+
+    // Send Email
+    const { sendVerificationEmail } = await import('@/lib/email');
+    await sendVerificationEmail(email, token);
+
+    return NextResponse.json({ success: true, message: 'Registration successful. Please check your email to verify your account.', userId: user.id }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

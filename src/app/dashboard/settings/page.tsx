@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import PlaidLinkButton from '@/components/PlaidLinkButton';
 import { useT } from '@/lib/i18n';
@@ -8,8 +8,42 @@ import styles from './page.module.css';
 
 export default function SettingsPage() {
   const t = useT();
+  const [alerts, setAlerts] = useState({
+    deposits: true,
+    withdrawals: true,
+    payments: true,
+    closingDifference: true,
+  });
+  const [savingAlerts, setSavingAlerts] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/settings/alerts')
+      .then(res => res.json())
+      .then(data => {
+        if (data.preferences) {
+          setAlerts(data.preferences);
+        }
+      });
+  }, []);
+
+  const toggleAlert = async (key: keyof typeof alerts) => {
+    const newAlerts = { ...alerts, [key]: !alerts[key] };
+    setAlerts(newAlerts);
+    setSavingAlerts(true);
+    try {
+      await fetch('/api/settings/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newAlerts)
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingAlerts(false);
+    }
+  };
+
   return (
-    <div className={styles.container}>
       
       <div className={styles.settingsGrid}>
         
@@ -87,20 +121,40 @@ export default function SettingsPage() {
               
               <div className={styles.notificationItem}>
                 <div className={styles.notificationInfo}>
-                  <div className={styles.notificationName}>{t('settings.emailAlerts')}</div>
-                  <div className={styles.notificationDesc}>{t('settings.emailAlertsDesc')}</div>
+                  <div className={styles.notificationName}>{t('settings.alerts.deposits') || 'Deposits'}</div>
+                  <div className={styles.notificationDesc}>Notify me on incoming deposits</div>
                 </div>
-                <div className={`${styles.toggle} ${styles.toggleActive}`}>
+                <div className={`${styles.toggle} ${alerts.deposits ? styles.toggleActive : ''}`} onClick={() => toggleAlert('deposits')}>
                   <div className={styles.toggleKnob}></div>
                 </div>
               </div>
 
               <div className={styles.notificationItem}>
                 <div className={styles.notificationInfo}>
-                  <div className={styles.notificationName}>{t('settings.pushNotifications')}</div>
-                  <div className={styles.notificationDesc}>{t('settings.pushNotificationsDesc')}</div>
+                  <div className={styles.notificationName}>{t('settings.alerts.withdrawals') || 'Withdrawals (Retiros)'}</div>
+                  <div className={styles.notificationDesc}>Notify me on large withdrawals</div>
                 </div>
-                <div className={`${styles.toggle} ${styles.toggleActive}`}>
+                <div className={`${styles.toggle} ${alerts.withdrawals ? styles.toggleActive : ''}`} onClick={() => toggleAlert('withdrawals')}>
+                  <div className={styles.toggleKnob}></div>
+                </div>
+              </div>
+
+              <div className={styles.notificationItem}>
+                <div className={styles.notificationInfo}>
+                  <div className={styles.notificationName}>{t('settings.alerts.payments') || 'Payments (Pagos)'}</div>
+                  <div className={styles.notificationDesc}>Notify me of upcoming and completed payments</div>
+                </div>
+                <div className={`${styles.toggle} ${alerts.payments ? styles.toggleActive : ''}`} onClick={() => toggleAlert('payments')}>
+                  <div className={styles.toggleKnob}></div>
+                </div>
+              </div>
+
+              <div className={styles.notificationItem}>
+                <div className={styles.notificationInfo}>
+                  <div className={styles.notificationName}>{t('settings.alerts.closing') || 'Closing Difference'}</div>
+                  <div className={styles.notificationDesc}>Notify me if closing balance does not match expectations</div>
+                </div>
+                <div className={`${styles.toggle} ${alerts.closingDifference ? styles.toggleActive : ''}`} onClick={() => toggleAlert('closingDifference')}>
                   <div className={styles.toggleKnob}></div>
                 </div>
               </div>

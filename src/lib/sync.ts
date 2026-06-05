@@ -19,6 +19,13 @@ export async function syncTransactions(plaidItemId: string) {
   const accessToken = decrypt(item.accessToken); 
   let cursor = item.syncCursor;
 
+  // Fetch user for alerts
+  const user = await prisma.user.findUnique({
+    where: { id: item.userId }
+  });
+  const prefs = user?.alertPreferences as any || {};
+
+
   // New transactions, modified, removed
   let added: any[] = [];
   let modified: any[] = [];
@@ -84,7 +91,7 @@ export async function syncTransactions(plaidItemId: string) {
               pending: t.pending,
               personalFinanceCategory: t.personal_finance_category?.detailed || null,
             },
-            update: {
+              update: {
               amount: t.amount,
               date: new Date(t.date),
               name: t.name,
@@ -94,6 +101,39 @@ export async function syncTransactions(plaidItemId: string) {
               isRemoved: false,
             },
           });
+
+          // Send Alert Emails
+          if (user?.email && accountExists) {
+            const { sendAlertEmail } = await import('@/lib/email');
+            
+            // Deposits (Negative amount in Plaid for checking usually means deposit, 
+            // but let's check account type)
+            if (accountExists.type === 'depository' && t.amount < 0 && prefs.deposits) {
+              await sendAlertEmail(
+                user.email,
+                'New Deposit Alert',
+                `A new deposit of $${Math.abs(t.amount)} was recorded in your account ${accountExists.name}.`
+              );
+            }
+            
+            // Withdrawals (Positive amount in depository)
+            if (accountExists.type === 'depository' && t.amount > 0 && prefs.withdrawals) {
+              await sendAlertEmail(
+                user.email,
+                'New Withdrawal Alert',
+                `A new withdrawal/expense of $${t.amount} was recorded in your account ${accountExists.name} at ${t.name}.`
+              );
+            }
+
+            // Payments (Negative amount in credit account)
+            if ((accountExists.type === 'credit' || accountExists.type === 'loan') && t.amount < 0 && prefs.payments) {
+              await sendAlertEmail(
+                user.email,
+                'Payment Received Alert',
+                `A payment of $${Math.abs(t.amount)} was recorded in your credit account ${accountExists.name}.`
+              );
+            }
+          }
         }
       }
 

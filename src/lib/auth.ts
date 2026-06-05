@@ -27,10 +27,15 @@ export const authOptions: NextAuthOptions = {
         if (!isValid) {
           throw new Error("Invalid credentials");
         }
+        if (!user.emailVerified) {
+          throw new Error("Please check your email and verify your account before logging in.");
+        }
         return {
           id: user.id,
           name: user.name,
           email: user.email,
+          role: user.role,
+          familyId: user.familyId,
         };
       }
     })
@@ -42,12 +47,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = (user as any).role;
+        token.familyId = (user as any).familyId;
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as any).id = token.id;
+        (session.user as any).role = token.role;
+        (session.user as any).familyId = token.familyId;
       }
       return session;
     }

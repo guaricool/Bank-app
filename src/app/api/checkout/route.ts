@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   try {
@@ -19,6 +20,17 @@ export async function POST(request: Request) {
 
     if (!familyId || !email) {
       return NextResponse.json({ error: 'Family ID and Email are required' }, { status: 400 });
+    }
+
+    const family = await prisma.family.findUnique({
+      where: { id: familyId }
+    });
+
+    if ((session.user as any).role === 'ADMIN' || family?.stripeExempt) {
+      return NextResponse.json({ 
+        bypass: true, 
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard` 
+      });
     }
 
     const priceId = process.env.STRIPE_PRICE_ID;
