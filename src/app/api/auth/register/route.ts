@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
@@ -49,8 +49,8 @@ export async function POST(request: Request) {
     await sendVerificationEmail(email, token);
 
     return NextResponse.json({ success: true, message: 'Registration successful. Please check your email to verify your account.', userId: user.id }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Registration error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
