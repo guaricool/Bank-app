@@ -162,8 +162,6 @@ export default function SettingsPage() {
             </div>
           </TextureCard>
 
-        </div>
       </div>
-    </div>
   );
 }
