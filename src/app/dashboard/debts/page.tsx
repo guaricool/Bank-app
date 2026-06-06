@@ -370,37 +370,101 @@ export default function DebtsPage() {
             </TextureCard>
           )}
 
-          {/* Priority Order */}
+          {/* Monthly Payment Plan */}
           <div className={styles.recommendationsSection}>
             <div className={styles.recommendationsHeader}>
-              <h2 className={styles.sectionTitle}>
-                {strategy === 'AVALANCHE' ? 'Attack Order — Highest APR First' : 'Attack Order — Lowest Balance First'}
-              </h2>
+              <h2 className={styles.sectionTitle}>Monthly Payment Plan</h2>
+              <span className={styles.strategyTag}>
+                {strategy === 'AVALANCHE' ? '↑ Highest APR first' : '↓ Lowest balance first'}
+              </span>
             </div>
-            <TextureCard>
+
+            <TextureCard className={styles.paymentPlanCard}>
+              {/* Total row */}
+              <div className={styles.planTotalRow}>
+                <span className={styles.planTotalLabel}>Total you pay per month</span>
+                <span className={styles.planTotalValue}>
+                  {fmtMoney(sortedDebts.reduce((s, d) => s + d.minimumPayment, 0) + extraPayment)}/mo
+                </span>
+              </div>
+
               <ul className={styles.debtItems}>
-                {sortedDebts.map((debt, index) => (
-                  <li
-                    key={debt.id}
-                    className={`${styles.debtItem} ${index === 0 ? styles.debtItemPrimary : ''}`}
-                  >
-                    <div className={styles.debtLeft}>
-                      <div className={styles.debtNameRow}>
-                        <span className={styles.debtRank}>{index + 1}</span>
-                        <span className={styles.debtName}>{debt.name}</span>
-                        {index === 0 && <span className={styles.targetBadge}>Attack First</span>}
+                {sortedDebts.map((debt, index) => {
+                  const isTarget = index === 0;
+                  // Recommended payment for this month:
+                  // - target card: minimum + all extra
+                  // - others: just their minimum
+                  const recommended = isTarget
+                    ? debt.minimumPayment + extraPayment
+                    : debt.minimumPayment;
+
+                  // What this card will receive once all prior cards are paid off:
+                  // = its own minimum + sum of freed minimums + extraPayment
+                  const freedMinimums = sortedDebts
+                    .slice(0, index)
+                    .reduce((s, d) => s + d.minimumPayment, 0);
+                  const futurePayment = debt.minimumPayment + freedMinimums + extraPayment;
+
+                  return (
+                    <li
+                      key={debt.id}
+                      className={`${styles.debtItem} ${isTarget ? styles.debtItemPrimary : ''}`}
+                    >
+                      <div className={styles.debtLeft}>
+                        {/* Name row */}
+                        <div className={styles.debtNameRow}>
+                          <span className={styles.debtRank}>{index + 1}</span>
+                          <span className={styles.debtName}>{debt.name}</span>
+                          {isTarget && <span className={styles.targetBadge}>Pay extra here</span>}
+                        </div>
+
+                        {/* APR + balance meta */}
+                        <div className={styles.debtMeta}>
+                          <span>APR: <strong>{(debt.apr * 100).toFixed(2)}%</strong></span>
+                          <span>Balance: <strong>{fmtMoney(debt.balance)}</strong></span>
+                        </div>
+
+                        {/* Payment breakdown */}
+                        <div className={styles.paymentBreakdown}>
+                          <div className={styles.paymentRow}>
+                            <span className={styles.paymentRowLabel}>Minimum required</span>
+                            <span className={styles.paymentRowValue}>
+                              ${debt.minimumPayment.toFixed(0)}/mo
+                            </span>
+                          </div>
+
+                          <div className={`${styles.paymentRow} ${isTarget ? styles.paymentRowHighlight : ''}`}>
+                            <span className={styles.paymentRowLabel}>
+                              {isTarget ? '⬆ Pay this amount' : 'Pay this month'}
+                            </span>
+                            <span className={`${styles.paymentRowValue} ${isTarget ? styles.paymentValueBig : ''}`}>
+                              ${recommended.toFixed(0)}/mo
+                            </span>
+                          </div>
+
+                          {isTarget && extraPayment > 0 && (
+                            <div className={styles.paymentExtraNote}>
+                              ${debt.minimumPayment.toFixed(0)} min + ${extraPayment} extra = ${recommended.toFixed(0)}/mo
+                            </div>
+                          )}
+
+                          {!isTarget && index > 0 && (
+                            <div className={styles.paymentFutureNote}>
+                              After #{index} is paid off → you'll pay ${futurePayment.toFixed(0)}/mo here
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className={styles.debtMeta}>
-                        <span>APR: {(debt.apr * 100).toFixed(2)}%</span>
-                        <span>Min: ${debt.minimumPayment.toFixed(0)}/mo</span>
-                      </div>
-                    </div>
-                    <div className={styles.debtBalance}>
-                      {fmtMoney(debt.balance)}
-                    </div>
-                  </li>
-                ))}
+                    </li>
+                  );
+                })}
               </ul>
+
+              {extraPayment === 0 && (
+                <div className={styles.planNudge}>
+                  💡 Add an extra monthly payment above to see exactly how much to send to each card.
+                </div>
+              )}
             </TextureCard>
           </div>
         </>
