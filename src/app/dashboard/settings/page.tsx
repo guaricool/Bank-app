@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { TextureCard } from '@/components/ui/TextureCard';
 import PlaidLinkButton from '@/components/PlaidLinkButton';
+import { useSession } from 'next-auth/react';
 import { useT } from '@/lib/i18n';
 import styles from './page.module.css';
 
 export default function SettingsPage() {
   const t = useT();
+  const { data: session } = useSession();
   const [alerts, setAlerts] = useState({
     deposits: true,
     withdrawals: true,
@@ -43,6 +45,34 @@ export default function SettingsPage() {
     }
   };
 
+  const [profileName, setProfileName] = useState(session?.user?.name || '');
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (session?.user?.name) {
+      setProfileName(session.user.name);
+    }
+  }, [session]);
+
+  const handleSaveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      const res = await fetch('/api/settings/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: profileName })
+      });
+      if (res.ok) {
+        // Force session refresh or reload page
+        window.location.reload();
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   return (
       
       <div className={styles.settingsGrid}>
@@ -52,18 +82,20 @@ export default function SettingsPage() {
           <h2 className={styles.sectionTitle}>{t('settings.profileDetails')}</h2>
           <div className={styles.profileSection}>
             <div className={styles.avatarWrapper}>
-              <div className={styles.avatarLarge}>JD</div>
+              <div className={styles.avatarLarge}>
+                {session?.user?.name ? session.user.name.substring(0, 2).toUpperCase() : 'U'}
+              </div>
               <button className={styles.changeAvatarBtn}>{t('settings.changePhoto')}</button>
             </div>
             
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('settings.fullName')}</label>
-              <input type="text" className={styles.input} defaultValue="John Doe" />
+              <input type="text" className={styles.input} value={profileName} onChange={(e) => setProfileName(e.target.value)} />
             </div>
 
             <div className={styles.formGroup}>
               <label className={styles.label}>{t('settings.emailAddress')}</label>
-              <input type="email" className={styles.input} defaultValue="john.doe@example.com" />
+              <input type="email" className={styles.input} defaultValue={session?.user?.email || ''} readOnly style={{ opacity: 0.7 }} />
             </div>
 
             <div className={styles.formGroup}>
@@ -71,7 +103,9 @@ export default function SettingsPage() {
               <input type="tel" className={styles.input} defaultValue="+1 (555) 123-4567" />
             </div>
 
-            <button className={styles.primaryBtn}>{t('settings.saveChanges')}</button>
+            <button className={styles.primaryBtn} onClick={handleSaveProfile} disabled={savingProfile}>
+              {savingProfile ? t('settings.saving') || 'Saving...' : t('settings.saveChanges')}
+            </button>
           </div>
         </TextureCard>
 
@@ -110,7 +144,7 @@ export default function SettingsPage() {
                   <div className={styles.securityName}>{t('settings.bankConnections')}</div>
                   <div className={styles.securityDesc}>{t('settings.bankConnectionsDesc')}</div>
                 </div>
-                <PlaidLinkButton userId="mock_user_123" />
+                <PlaidLinkButton userId={(session?.user as any)?.id || ''} />
               </div>
             </div>
           </TextureCard>

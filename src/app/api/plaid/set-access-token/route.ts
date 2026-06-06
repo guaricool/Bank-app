@@ -103,6 +103,11 @@ export async function POST(request: Request) {
         )
       );
       console.log(`Successfully fetched and stored ${accounts.length} accounts for item ${itemId}`);
+
+      // Async trigger transaction sync so user sees data immediately
+      const { syncTransactions } = await import('@/lib/sync');
+      syncTransactions(plaidItem.id).catch(e => console.error("Immediate sync failed:", e));
+
     } catch (accountsError) {
       console.error('Failed to fetch initial accounts from Plaid:', accountsError);
       // We don't throw here because the token exchange succeeded. 

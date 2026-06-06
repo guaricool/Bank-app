@@ -1,0 +1,350 @@
+'use client';
+
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  CreditCard,
+  LayoutList,
+  AlertTriangle,
+  TrendingDown,
+  Zap,
+  Clock,
+} from 'lucide-react';
+import { TextureCard } from '@/components/ui/TextureCard';
+import styles from './page.module.css';
+import {
+  runProjection,
+  runSensitivityTable,
+  detectMinimumPaymentTrap,
+  getMinimumOnlyBaseline,
+} from '@/lib/debtCalculator';
+import type { Debt, PayoffStrategy } from '@/lib/debtCalculator';
+
+function fmtMoney(n: number): string {
+  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function fmtMonths(n: number): string {
+  if (n >= 1200) return '100+ yrs';
+  const yrs = Math.floor(n / 12);
+  const mos = n % 12;
+  if (yrs === 0) return `${mos}mo`;
+  if (mos === 0) return `${yrs}yr`;
+  return `${yrs}yr ${mos}mo`;
+}
+
+export default function DebtsPage() {
+  const [liabilities, setLiabilities] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [strategy, setStrategy] = useState<PayoffStrategy>('AVALANCHE');
+  const [extraPayment, setExtraPayment] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/plaid/accounts')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data?.liabilities) {
+          setLiabilities(data.data.liabilities);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  // Map API accounts → Debt objects the calculator understands.
+  // Plaid stores apr as a percentage (e.g. 18.99), financialMath expects decimal (0.1899).
+  const debts: Debt[] = useMemo(() =>
+    liabilities
+      .filter(acc => (acc.currentBalance || 0) > 0)
+      .map(acc => ({
+        id: acc.id,
+        name: acc.name,
+        balance: acc.currentBalance || 0,
+        apr: ((acc.apr ?? 18.99) / 100),
+        minimumPayment: acc.minimumPayment || Math.max(25, (acc.currentBalance || 0) * 0.02),
+      })),
+    [liabilities]
+  );
+
+  const totalDebt = useMemo(
+    () => liabilities.reduce((sum, acc) => sum + (acc.currentBalance || 0), 0),
+    [liabilities]
+  );
+
+  // Baseline (minimum-only) — only recalculates when debts or strategy change.
+  const baseline = useMemo(() =>
+    debts.length > 0 ? getMinimumOnlyBaseline(debts, strategy) : null,
+    [debts, strategy]
+  );
+
+  // Projection with extra payment — recalculates on slider change but reuses baseline.
+  const projection = useMemo(() => {
+    if (!debts.length || !baseline) return null;
+    return runProjection(debts, extraPayment, strategy, baseline);
+  }, [debts, extraPayment, strategy, baseline]);
+
+  // Sensitivity table — only changes when debts or strategy change.
+  const sensitivityTable = useMemo(() =>
+    debts.length > 0 ? runSensitivityTable(debts, strategy) : [],
+    [debts, strategy]
+  );
+
+  const traps = useMemo(() =>
+    debts.length > 0 ? detectMinimumPaymentTrap(debts) : [],
+    [debts]
+  );
+
+  const hasTrap = traps.some(t => t.isTrap);
+  const trapNames = traps.filter(t => t.isTrap).map(t => t.debtName);
+
+  const sortedDebts = useMemo(() =>
+    [...debts].sort((a, b) =>
+      strategy === 'AVALANCHE' ? b.apr - a.apr : a.balance - b.balance
+    ),
+    [debts, strategy]
+  );
+
+  if (loading) {
+    return <div className={styles.loading}>Loading debt recommendations...</div>;
+  }
+
+  return (
+    <div>
+      {/* Metric Cards */}
+      <div className={styles.metricsRow}>
+        <TextureCard className={styles.metricCard}>
+          <div className={styles.metricHeader}>
+            <h3 className={styles.metricLabel}>Total Debt</h3>
+            <div className={styles.metricIcon}><CreditCard size={18} strokeWidth={1.8} /></div>
+          </div>
+          <div className={styles.metricValue}>{fmtMoney(totalDebt)}</div>
+          {projection && (
+            <div className={styles.metricSub}>
+              Free in <strong>{fmtMonths(projection.monthsToPayoff)}</strong>
+            </div>
+          )}
+        </TextureCard>
+
+        <TextureCard className={styles.metricCard}>
+          <div className={styles.metricHeader}>
+            <h3 className={styles.metricLabel}>Accounts</h3>
+            <div className={styles.metricIcon}><LayoutList size={18} strokeWidth={1.8} /></div>
+          </div>
+          <div className={styles.metricValue}>{liabilities.length}</div>
+          {hasTrap && (
+            <div className={styles.metricWarn}>
+              <AlertTriangle size={12} strokeWidth={2} />
+              Minimum trap detected
+            </div>
+          )}
+        </TextureCard>
+
+        {projection && projection.interestSavedVsMinimum > 0 && (
+          <TextureCard className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <h3 className={styles.metricLabel}>Interest Saved</h3>
+              <div className={styles.metricIcon}><Zap size={18} strokeWidth={1.8} /></div>
+            </div>
+            <div className={`${styles.metricValue} ${styles.metricValueGreen}`}>
+              {fmtMoney(projection.interestSavedVsMinimum)}
+            </div>
+            <div className={styles.metricSub}>vs. minimums only</div>
+          </TextureCard>
+        )}
+
+        {projection && projection.monthsSavedVsMinimum > 0 && (
+          <TextureCard className={styles.metricCard}>
+            <div className={styles.metricHeader}>
+              <h3 className={styles.metricLabel}>Time Saved</h3>
+              <div className={styles.metricIcon}><Clock size={18} strokeWidth={1.8} /></div>
+            </div>
+            <div className={`${styles.metricValue} ${styles.metricValueGreen}`}>
+              {fmtMonths(projection.monthsSavedVsMinimum)}
+            </div>
+            <div className={styles.metricSub}>vs. minimums only</div>
+          </TextureCard>
+        )}
+      </div>
+
+      {debts.length === 0 ? (
+        <TextureCard>
+          <div className={styles.emptyState}>
+            <TrendingDown size={40} strokeWidth={1.2} style={{ opacity: 0.35 }} />
+            <p>No debt accounts found, or they all have a $0 balance.</p>
+            <p style={{ fontSize: '0.85rem', opacity: 0.6 }}>
+              Link a credit card or loan account to unlock the payoff engine.
+            </p>
+          </div>
+        </TextureCard>
+      ) : (
+        <>
+          {/* Payoff Engine */}
+          <TextureCard className={styles.engineCard}>
+            <div className={styles.engineHeader}>
+              <h2 className={styles.sectionTitle}>Payoff Engine</h2>
+              <div className={styles.strategyToggle}>
+                <button
+                  onClick={() => setStrategy('AVALANCHE')}
+                  className={`${styles.strategyBtn} ${strategy === 'AVALANCHE' ? styles.strategyBtnActive : ''}`}
+                >
+                  Avalanche
+                </button>
+                <button
+                  onClick={() => setStrategy('SNOWBALL')}
+                  className={`${styles.strategyBtn} ${strategy === 'SNOWBALL' ? styles.strategyBtnActive : ''}`}
+                >
+                  Snowball
+                </button>
+              </div>
+            </div>
+
+            <p className={styles.strategyDesc}>
+              {strategy === 'AVALANCHE'
+                ? 'Highest APR first — mathematically optimal. Minimizes total interest paid over the life of your debt.'
+                : 'Lowest balance first — builds momentum with quick wins. Best when motivation is the barrier, not math.'}
+            </p>
+
+            {/* Extra Payment Slider */}
+            <div className={styles.sliderSection}>
+              <div className={styles.sliderLabel}>
+                <span>Extra Monthly Payment</span>
+                <strong className={styles.sliderValue}>${extraPayment}/mo</strong>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={2000}
+                step={25}
+                value={extraPayment}
+                onChange={e => setExtraPayment(Number(e.target.value))}
+                className={styles.slider}
+                aria-label="Extra monthly payment amount"
+              />
+              <div className={styles.sliderRange}>
+                <span>$0</span>
+                <span>$2,000</span>
+              </div>
+            </div>
+
+            {/* Minimum Payment Trap Warning */}
+            {hasTrap && (
+              <div className={styles.trapWarning}>
+                <AlertTriangle size={16} strokeWidth={2} className={styles.trapIcon} />
+                <div>
+                  <strong>Minimum Payment Trap Detected</strong>
+                  <p>
+                    {trapNames.join(', ')} — your minimum payment barely covers the monthly interest.
+                    Without extra payments, this debt may grow instead of shrink.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Horror vs. Hero Comparison */}
+            {baseline && projection && (
+              <div className={styles.comparisonRow}>
+                <div className={styles.horrorBox}>
+                  <div className={styles.compBoxLabel}>Minimum Only</div>
+                  <div className={styles.compBoxTime}>{fmtMonths(baseline.monthsToPayoff)}</div>
+                  <div className={styles.compBoxInterest}>{fmtMoney(baseline.totalInterestPaid)} interest</div>
+                </div>
+
+                <div className={styles.compDivider}>
+                  <div className={styles.compSavings}>
+                    {extraPayment > 0
+                      ? `Save ${fmtMoney(projection.interestSavedVsMinimum)}`
+                      : 'Add extra to save'}
+                  </div>
+                  <div className={styles.compArrow}>→</div>
+                </div>
+
+                <div className={styles.heroBox}>
+                  <div className={styles.compBoxLabel}>+${extraPayment}/mo Plan</div>
+                  <div className={styles.compBoxTime}>{fmtMonths(projection.monthsToPayoff)}</div>
+                  <div className={styles.compBoxInterest}>{fmtMoney(projection.totalInterestPaid)} interest</div>
+                </div>
+              </div>
+            )}
+          </TextureCard>
+
+          {/* Sensitivity Table */}
+          {sensitivityTable.length > 0 && (
+            <TextureCard className={styles.tableCard}>
+              <h2 className={styles.sectionTitle}>Extra Payment Sensitivity</h2>
+              <p className={styles.tableDesc}>See what each extra dollar does to your timeline and total interest.</p>
+              <div className={styles.tableWrapper}>
+                <table className={styles.sensitivityTable}>
+                  <thead>
+                    <tr>
+                      <th>Extra/mo</th>
+                      <th>Payoff</th>
+                      <th>Total Interest</th>
+                      <th>You Save</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sensitivityTable.map(row => {
+                      const isActive = row.extraPayment === extraPayment ||
+                        (extraPayment > 0 && row.extraPayment === sensitivityTable
+                          .map(r => r.extraPayment)
+                          .filter(ep => ep <= extraPayment)
+                          .pop());
+                      return (
+                        <tr
+                          key={row.extraPayment}
+                          className={row.extraPayment === extraPayment ? styles.sensitivityRowActive : ''}
+                          onClick={() => setExtraPayment(row.extraPayment)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td>${row.extraPayment}</td>
+                          <td>{fmtMonths(row.monthsToPayoff)}</td>
+                          <td>{fmtMoney(row.totalInterestPaid)}</td>
+                          <td className={row.interestSaved > 0 ? styles.savedCell : ''}>
+                            {row.interestSaved > 0 ? `+${fmtMoney(row.interestSaved)}` : '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </TextureCard>
+          )}
+
+          {/* Priority Order */}
+          <div className={styles.recommendationsSection}>
+            <div className={styles.recommendationsHeader}>
+              <h2 className={styles.sectionTitle}>
+                {strategy === 'AVALANCHE' ? 'Attack Order — Highest APR First' : 'Attack Order — Lowest Balance First'}
+              </h2>
+            </div>
+            <TextureCard>
+              <ul className={styles.debtItems}>
+                {sortedDebts.map((debt, index) => (
+                  <li
+                    key={debt.id}
+                    className={`${styles.debtItem} ${index === 0 ? styles.debtItemPrimary : ''}`}
+                  >
+                    <div className={styles.debtLeft}>
+                      <div className={styles.debtNameRow}>
+                        <span className={styles.debtRank}>{index + 1}</span>
+                        <span className={styles.debtName}>{debt.name}</span>
+                        {index === 0 && <span className={styles.targetBadge}>Attack First</span>}
+                      </div>
+                      <div className={styles.debtMeta}>
+                        <span>APR: {(debt.apr * 100).toFixed(2)}%</span>
+                        <span>Min: ${debt.minimumPayment.toFixed(0)}/mo</span>
+                      </div>
+                    </div>
+                    <div className={styles.debtBalance}>
+                      {fmtMoney(debt.balance)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </TextureCard>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

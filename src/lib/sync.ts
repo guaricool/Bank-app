@@ -54,8 +54,17 @@ export async function syncTransactions(plaidItemId: string) {
     // Persist results
     // Use transaction to ensure consistency
     await prisma.$transaction(async (tx) => {
+      
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - 24);
+
       // 1. Add new transactions
       for (const t of added) {
+        const txDate = new Date(t.date);
+        if (txDate < cutoffDate) {
+          continue; // Skip transactions older than 2 months
+        }
+
         // Ensure the account exists before adding the transaction.
         // In a real app, you might sync accounts first if they're missing.
         let accountExists = await tx.bankAccount.findUnique({
@@ -83,13 +92,14 @@ export async function syncTransactions(plaidItemId: string) {
             where: { transactionId: t.transaction_id },
             create: {
               transactionId: t.transaction_id,
-              accountId: t.account_id,
+              accountId: accountExists.id,
               amount: t.amount,
               date: new Date(t.date),
               name: t.name,
               merchantName: t.merchant_name || null,
               pending: t.pending,
               personalFinanceCategory: t.personal_finance_category?.detailed || null,
+              personalFinanceCategoryPrimary: t.personal_finance_category?.primary || null,
             },
               update: {
               amount: t.amount,
@@ -98,6 +108,7 @@ export async function syncTransactions(plaidItemId: string) {
               merchantName: t.merchant_name || null,
               pending: t.pending,
               personalFinanceCategory: t.personal_finance_category?.detailed || null,
+              personalFinanceCategoryPrimary: t.personal_finance_category?.primary || null,
               isRemoved: false,
             },
           });
@@ -154,6 +165,7 @@ export async function syncTransactions(plaidItemId: string) {
               merchantName: t.merchant_name || null,
               pending: t.pending,
               personalFinanceCategory: t.personal_finance_category?.detailed || null,
+              personalFinanceCategoryPrimary: t.personal_finance_category?.primary || null,
             },
           });
         }
@@ -190,5 +202,65 @@ export async function syncTransactions(plaidItemId: string) {
   } catch (error) {
     console.error(`Error syncing transactions for item ${item.id}:`, error);
     throw error;
+  }
+}
+
+/**
+ * Syncs liabilities (credit cards, loans) to update APR and minimum payments.
+ */
+export async function syncLiabilities(plaidItemId: string) {
+  const item = await prisma.plaidItem.findUnique({
+    where: { id: plaidItemId },
+  });
+
+  if (!item) {
+    throw new Error('PlaidItem not found');
+  }
+
+  const accessToken = decrypt(item.accessToken);
+
+  try {
+    const response = await plaidClient.liabilitiesGet({ access_token: accessToken });
+    const { credit, student } = response.data.liabilities;
+
+    // Process credit cards
+    if (credit && credit.length > 0) {
+      for (const c of credit) {
+        let apr: number | null = null;
+        if (c.aprs && c.aprs.length > 0) {
+          const purchaseApr = c.aprs.find((a: any) => a.apr_type === 'purchase_apr');
+          apr = purchaseApr ? purchaseApr.apr_percentage : c.aprs[0].apr_percentage;
+        }
+
+        if (c.account_id) {
+          await prisma.bankAccount.updateMany({
+            where: { accountId: c.account_id },
+            data: {
+              apr: apr,
+              minimumPayment: c.minimum_payment_amount,
+            }
+          });
+        }
+      }
+    }
+    
+    // Process student loans
+    if (student && student.length > 0) {
+      for (const s of student) {
+        if (s.account_id) {
+          await prisma.bankAccount.updateMany({
+            where: { accountId: s.account_id },
+            data: {
+              apr: s.interest_rate_percentage,
+              minimumPayment: s.minimum_payment_amount,
+            }
+          });
+        }
+      }
+    }
+
+    console.log(`Successfully synced liabilities for PlaidItem ${item.id}`);
+  } catch (error) {
+    console.error(`Error syncing liabilities for item ${item.id}:`, error);
   }
 }

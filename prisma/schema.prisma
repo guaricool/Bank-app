@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
 }
 
 datasource db {
@@ -78,8 +78,9 @@ model Transaction {
   name             String
   merchantName     String?
   pending          Boolean  @default(false)
-  personalFinanceCategory String? 
-  isRemoved        Boolean  @default(false) 
+  personalFinanceCategory        String?
+  personalFinanceCategoryPrimary String?
+  isRemoved        Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

@@ -41,18 +41,31 @@
 }
 
 .navLink {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 12px 16px;
   border-radius: 12px;
   color: rgba(255, 255, 255, 0.7);
   transition: all var(--transition-fast) ease;
   font-weight: 500;
+  cursor: pointer;
+}
+
+.navIcon {
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 .navLink:hover,
 .navLink:focus {
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
+}
+
+.navLink:hover .navIcon,
+.navLink.active .navIcon {
+  opacity: 1;
 }
 
 .navLink.active {
@@ -154,17 +167,44 @@
   background: #ffffff;
   color: #000;
   border: none;
-  padding: 10px 20px;
+  padding: 10px 18px;
   border-radius: 20px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.9rem;
 }
 
 .primaryButton:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(255, 255, 255, 0.2);
+}
+
+.logoutBtn {
+  width: 100%;
+  margin-top: 1rem;
+  color: #ff4d4d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 77, 77, 0.3);
+  background: transparent;
+  padding: 10px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logoutBtn:hover {
+  background: rgba(255, 77, 77, 0.1);
+  border-color: rgba(255, 77, 77, 0.6);
 }
 
 .contentContainer {
