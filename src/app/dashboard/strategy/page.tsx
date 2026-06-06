@@ -1,15 +1,6 @@
-import React from 'react';
-import StrategyDashboard from './StrategyDashboard';
-import styles from './page.module.css';
+import { redirect } from 'next/navigation';
 
+// The strategy tool has been consolidated into /dashboard/debts
 export default function StrategyPage() {
-  return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className={styles.title}>Estrategia de Deudas</h1>
-        <p className={styles.subtitle}>Acelera tu camino hacia la libertad financiera</p>
-      </div>
-      <StrategyDashboard />
-    </div>
-  );
+  redirect('/dashboard/debts');
 }

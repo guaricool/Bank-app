@@ -468,6 +468,18 @@
   white-space: nowrap;
 }
 
+/* ─── Trajectory Chart ──────────────────────────────────────────── */
+
+.chartCard {
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.chartWrapper {
+  width: 100%;
+  margin-top: 8px;
+}
+
 /* ─── Empty State ───────────────────────────────────────────────── */
 
 .emptyState {

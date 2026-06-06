@@ -9,6 +9,9 @@ import {
   Zap,
   Clock,
 } from 'lucide-react';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+} from 'recharts';
 import { TextureCard } from '@/components/ui/TextureCard';
 import styles from './page.module.css';
 import {
@@ -102,6 +105,12 @@ export default function DebtsPage() {
     ),
     [debts, strategy]
   );
+
+  // Sampled timeline for the chart (every 3 months to limit data points)
+  const chartData = useMemo(() => {
+    if (!projection?.timeline) return [];
+    return projection.timeline.filter(p => p.month % 3 === 0 || p.month === 1);
+  }, [projection]);
 
   if (loading) {
     return <div className={styles.loading}>Loading debt recommendations...</div>;
@@ -306,6 +315,57 @@ export default function DebtsPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </TextureCard>
+          )}
+
+          {/* Debt Payoff Trajectory Chart */}
+          {chartData.length > 1 && (
+            <TextureCard className={styles.chartCard}>
+              <h2 className={styles.sectionTitle}>Payoff Trajectory</h2>
+              <p className={styles.tableDesc}>
+                Debt balance over time with your current +${extraPayment}/mo plan.
+              </p>
+              <div className={styles.chartWrapper}>
+                <ResponsiveContainer width="100%" height={240}>
+                  <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="debtGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.07)" />
+                    <XAxis
+                      dataKey="month"
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                      tickFormatter={v => `Mo ${v}`}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 11 }}
+                      tickFormatter={v => `$${v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v}`}
+                      tickLine={false}
+                      axisLine={false}
+                      width={60}
+                    />
+                    <Tooltip
+                      contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
+                      labelStyle={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.8rem' }}
+                      formatter={(v: any) => [`$${Number(v).toLocaleString()}`, 'Remaining Debt']}
+                      labelFormatter={label => `Month ${label}`}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="totalBalance"
+                      stroke="#3b82f6"
+                      strokeWidth={2.5}
+                      fillOpacity={1}
+                      fill="url(#debtGrad)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </TextureCard>
           )}

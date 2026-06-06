@@ -5,6 +5,12 @@ export type { Debt } from './financialMath';
 
 export type PayoffStrategy = 'AVALANCHE' | 'SNOWBALL';
 
+export interface TimelinePoint {
+  month: number;
+  totalBalance: number;
+  totalInterestPaid: number;
+}
+
 export interface DebtProjection {
   strategy: PayoffStrategy;
   extraPayment: number;
@@ -13,6 +19,7 @@ export interface DebtProjection {
   totalPaid: number;
   interestSavedVsMinimum: number;
   monthsSavedVsMinimum: number;
+  timeline: TimelinePoint[];
 }
 
 export interface SensitivityRow {
@@ -66,6 +73,11 @@ export function runProjection(
     totalPaid: result.totalPaid,
     interestSavedVsMinimum: Math.max(0, minimumOnly.totalInterestPaid - result.totalInterestPaid),
     monthsSavedVsMinimum: Math.max(0, minimumOnly.monthsToPayoff - result.monthsToPayoff),
+    timeline: result.timeline.map(m => ({
+      month: m.month,
+      totalBalance: m.totalBalance,
+      totalInterestPaid: m.totalInterestPaid,
+    })),
   };
 }
 

@@ -269,3 +269,32 @@
 .toggleActive .toggleKnob {
   transform: translateX(20px);
 }
+
+/* ─── Utilization Bar ───────────────────────────────────────────── */
+
+.utilizationRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.utilizationBar {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.utilizationFill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.utilizationLabel {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+}

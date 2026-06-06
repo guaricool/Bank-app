@@ -19,29 +19,37 @@ export default function DashboardPage() {
       fetch('/api/transactions').then(r => r.json()),
     ]).then(([accountsData, txData]) => {
       let balance = 0;
+      let totalLiabilities = 0;
+
       if (accountsData.success && accountsData.data) {
         const assets = accountsData.data.assets || [];
         balance = assets.reduce(
           (sum: number, acc: any) => sum + (acc.availableBalance || acc.currentBalance || 0),
           0
         );
+        const liabilities = accountsData.data.liabilities || [];
+        totalLiabilities = liabilities.reduce(
+          (sum: number, acc: any) => sum + (acc.currentBalance || 0),
+          0
+        );
       }
 
       let expenses = 0;
       if (txData.transactions) {
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
 
         expenses = txData.transactions.reduce((sum: number, tx: any) => {
           const txDate = new Date(tx.date);
-          if (txDate >= thirtyDaysAgo && tx.amount > 0) return sum + tx.amount;
+          if (txDate >= cutoff && tx.amount > 0) return sum + tx.amount;
           return sum;
         }, 0);
 
         setRecentTransactions(txData.transactions.slice(0, 5));
       }
 
-      setMetrics({ balance, expenses, savingsGoal: balance * 0.2 });
+      // Net Worth = total assets − total liabilities
+      setMetrics({ balance, expenses, savingsGoal: balance - totalLiabilities });
     }).catch(console.error);
   };
 
@@ -84,12 +92,17 @@ export default function DashboardPage() {
 
         <TextureCard className={styles.metricCard}>
           <div className={styles.metricHeader}>
-            <h3 className={styles.metricLabel}>{t('dashboard.savingsGoal')}</h3>
+            <h3 className={styles.metricLabel}>Net Worth</h3>
             <div className={styles.metricIcon}>
               <Target size={18} strokeWidth={1.8} />
             </div>
           </div>
-          <div className={styles.metricValue}>${metrics.savingsGoal.toFixed(2)}</div>
+          <div
+            className={styles.metricValue}
+            style={{ color: metrics.savingsGoal < 0 ? '#f87171' : '#ffffff' }}
+          >
+            {metrics.savingsGoal < 0 ? '-' : ''}${Math.abs(metrics.savingsGoal).toFixed(0)}
+          </div>
         </TextureCard>
       </div>
 

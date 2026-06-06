@@ -1,7 +1,65 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+/* ─── Summary Row ───────────────────────────────────────────────── */
+
+.summaryRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.summaryChip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* ─── Chart ─────────────────────────────────────────────────────── */
+
+.chartCard {
+  padding: 20px 24px 16px;
+}
+
+.chartTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px;
+}
+
+.chartWrapper {
+  width: 100%;
+}
+
+/* ─── Category header ───────────────────────────────────────────── */
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0 0 10px;
+}
+
+.categoryCount {
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
 }
 
 .filters {
@@ -20,7 +78,7 @@
   transition: all 0.2s ease;
 }
 
-.filterBtn:hover, .filterBtn.active {
+.filterBtn:hover, .active {
   background: rgba(255, 255, 255, 0.15);
   color: #ffffff;
 }

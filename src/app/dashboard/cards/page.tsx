@@ -70,14 +70,30 @@ export default function CardsPage() {
               </div>
               <div className={styles.cardDetails}>
                 <div>
-                  <div className={styles.cardLabel}>Card Name</div>
+                  <div className={styles.cardLabel}>Name</div>
                   <div className={styles.cardValue}>{card.name}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div className={styles.cardLabel}>Balance</div>
-                  <div className={styles.cardValue}>${card.currentBalance?.toFixed(2) || '0.00'}</div>
+                  <div className={styles.cardValue}>${(card.currentBalance || 0).toFixed(0)}</div>
                 </div>
               </div>
+              {/* Credit utilization bar */}
+              {card.availableBalance != null && card.currentBalance != null && (
+                (() => {
+                  const limit = card.currentBalance + card.availableBalance;
+                  const pct = limit > 0 ? Math.min(100, (card.currentBalance / limit) * 100) : 0;
+                  const color = pct > 75 ? '#f87171' : pct > 50 ? '#fbbf24' : '#4ade80';
+                  return (
+                    <div className={styles.utilizationRow}>
+                      <div className={styles.utilizationBar}>
+                        <div className={styles.utilizationFill} style={{ width: `${pct}%`, background: color }} />
+                      </div>
+                      <span className={styles.utilizationLabel} style={{ color }}>{pct.toFixed(0)}% used</span>
+                    </div>
+                  );
+                })()
+              )}
             </div>
           ))
         ) : (
