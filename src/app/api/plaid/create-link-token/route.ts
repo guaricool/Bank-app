@@ -1,32 +1,34 @@
-import { NextResponse } from 'next/server';
-import { plaidClient } from '@/lib/plaid';
-import { Products, CountryCode } from 'plaid';
+import { NextResponse } from "next/server";
+import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from "plaid";
 
-export async function POST(request: Request) {
+const configuration = new Configuration({
+  basePath: PlaidEnvironments[process.env.PLAID_ENV || "sandbox"],
+  baseOptions: {
+    headers: {
+      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID || "sandbox_client_id",
+      "PLAID-SECRET": process.env.PLAID_SECRET || "sandbox_secret",
+    },
+  },
+});
+
+const plaidClient = new PlaidApi(configuration);
+
+export async function POST() {
   try {
-    const body = await request.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
-    }
-
-    const requestObj = {
-      user: {
-        client_user_id: userId,
-      },
-      client_name: 'Bank App MVP',
-      products: [Products.Transactions, Products.Liabilities],
+    const response = await plaidClient.linkTokenCreate({
+      user: { client_user_id: "user-carlos-123" },
+      client_name: "Family Finance",
+      products: [Products.Auth, Products.Transactions, Products.Liabilities],
       country_codes: [CountryCode.Us],
-      language: 'en',
-      webhook: process.env.PLAID_WEBHOOK_URL || 'https://example.com/api/plaid/webhook',
-    };
+      language: "en",
+    });
 
-    const response = await plaidClient.linkTokenCreate(requestObj);
-
-    return NextResponse.json(response.data);
+    return NextResponse.json({ link_token: response.data.link_token });
   } catch (error: any) {
-    console.error('Error creating link token:', error.response?.data || error);
-    return NextResponse.json({ error: 'Failed to create link token' }, { status: 500 });
+    console.error("Plaid Link Token Error:", error?.response?.data || error.message);
+    return NextResponse.json(
+      { error: "Plaid Link Token Generation Failed", details: error?.response?.data || error.message },
+      { status: 500 }
+    );
   }
 }

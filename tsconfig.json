@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "test_sync.ts", "test_sync_2.js", "test-db.ts", "check_txs.ts", "check_txs.js", "check_tx.ts", "check_users.ts", "update_name.js"]
+  "exclude": ["node_modules", "check-users.ts", "test_sync.ts", "test_sync_2.js", "test-db.ts", "check_txs.ts", "check_txs.js", "check_tx.ts", "check_users.ts", "update_name.js"]
 }
