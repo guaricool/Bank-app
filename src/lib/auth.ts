@@ -84,9 +84,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 export async function setSessionCookie(user: SessionUser) {
   const token = signJwt(user);
   const cookieStore = await cookies();
+  const isHttps = process.env.SECURE_COOKIES === "true";
+
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isHttps,
     sameSite: "lax",
     path: "/",
     maxAge: 30 * 24 * 60 * 60, // 30 days
