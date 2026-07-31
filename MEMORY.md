@@ -1,69 +1,39 @@
-# Memory & Project State - Family Finance
+# Memory del Proyecto - Family Bank & Finance Tracker
 
-> Quick Context: Self-hosted private financial intelligence dashboard for Carlos & family. Dark native (Vercel/Linear style), data-dense, privacy-first.
+## Visión General
+Plataforma web premium para la gestión y seguimiento del patrimonio familiar y personal, incluyendo cuentas corrientes, de ahorros, tarjetas de crédito, deudas (autos, hipotecas) e integración directa con Plaid para sincronización bancaria en tiempo real.
 
----
+## Estado del Despliegue en Coolify & GitHub
+- **Repositorio**: `https://github.com/guaricool/Bank-app.git` (Rama `main`)
+- **Servidor VPS**: IP `13.140.181.29`
+- **Coolify URL**: `http://cruaownacjx753dlh2i3dpev.13.140.181.29.sslip.io`
+- **Base de Datos**: PostgreSQL en Coolify (`postgres:5432`)
+- **Auto-Migración**: El contenedor ejecuta `docker-entrypoint.sh` al iniciar (`npx prisma db push`), garantizando que las tablas estén sincronizadas automáticamente tras cada despliegue.
 
-## 1. Project Identity & Purpose
-- App Name: Family Finance / Bank App
-- Primary User: Carlos (technical, multi-account manager) + 2-4 family members.
-- JTBD: Tell me exactly where I stand financially in under 30 seconds, and show me the fastest path out of debt.
-- Core Features:
-  1. Net Worth calculation (Assets - Liabilities).
-  2. Plaid integration for auto-syncing bank accounts & credit cards.
-  3. Debt Payoff Simulator (Avalanche vs. Snowball + extra payment sliders).
-  4. Credit utilization monitoring.
-  5. Category spending & monthly burn tracking.
+## Características Implementadas
 
----
+### 1. Sistema de Usuarios y Multi-Tenancy (Aislamiento Total de Datos)
+- Autenticación JWT mediante cookies HTTP-Only seguras (`family_auth_session`).
+- Endpoints de autenticación: `/api/auth/register`, `/api/auth/login`, `/api/auth/logout`, `/api/auth/me`.
+- Páginas de interfaz: `/register` y `/login`.
+- Todo usuario nuevo inicia con el **dashboard 100% limpio** ($0.00 Net Worth).
+- Todas las consultas a la base de datos están estrictamente filtradas por `userId`.
 
-## 2. Technical Stack
-- Framework: Next.js 16 + React 19 (Standalone Output Mode)
-- Containerization: Multi-stage Docker build
-- Deployment Platform: Coolify PaaS (Self-hosted on VPS `13.140.181.29`)
-- Database: PostgreSQL (Managed inside Coolify)
-- ORM: Prisma
-- Styling: Tailwind CSS v4 + Framer Motion + Lucide React
-- Integrations: Plaid API, Resend, Stripe
-- Charts: Recharts
+### 2. Vistas Financieras y Navegación por Tablas
+- 📊 **Resumen General (`/`)**: Ticker de patrimonio neto, tarjetas de activos líquidos vs. deudas, actividad reciente.
+- 💰 **Ahorros y Débito (`/accounts`)**: Vista dedicada para cuentas de cheques (Checking), ahorro (Savings) y certificados (CD).
+- 💳 **Deudas y Créditos (`/debt-payoff`)**: Vista dedicada para Tarjetas de Crédito, Créditos de Auto e Hipotecas con indicadores de utilización, rastreador de pagos mínimos y simulador de amortización (Avalancha vs. Bola de Nieve).
+- 🧾 **Transacciones (`/transactions`)**: Feed completo con buscador y filtros de ingresos/gastos.
 
----
+### 3. Conexión Bancaria con Plaid
+- Componente `PlaidLinkButton` (`src/components/plaid/PlaidLinkButton.tsx`).
+- Endpoints de integración: `/api/plaid/create-link-token` y `/api/plaid/exchange-public-token`.
+- Asociación estricta de `PlaidItem`, `Account` y `Debt` al `userId` activo.
 
-## 3. Design System & Aesthetics
-- Aesthetic: Private / Precise / Premium
-- Reference UIs: Vercel Dashboard, Linear
-- Color Rules: Dark mode native (#09090b / #0a0a0a), high-contrast typography, subtle borders.
+### 4. Modo Demostración Opcional
+- Endpoint `/api/seed-demo` para usuarios que deseen probar el sistema con datos de muestra en su propia cuenta aislada.
 
----
-
-## 4. Memory Index & File Map
-- PRODUCT.md: Vision, user personas, brand voice, design rules.
-- CLAUDE.md & AGENTS.md: Routing rules for skills and Next.js guidelines.
-- graphify-out/: Knowledge Graph index (graph.html, GRAPH_REPORT.md, graph.json).
-- MEMORY.md: Persistent memory and progress tracking.
-- Dockerfile & .dockerignore: Production Docker configuration for Coolify.
-
----
-
-## 5. Current Progress & Roadmap
-- [x] Initialized project dependencies and environment setup.
-- [x] Defined product vision in PRODUCT.md.
-- [x] Built Graphify Knowledge Graph in graphify-out/.
-- [x] Created persistent MEMORY.md.
-- [x] Design Prisma Database Schema (prisma/schema.prisma).
-- [x] Implement Net Worth & Monthly Burn Dashboard (src/app/page.tsx).
-- [x] Implement Debt Payoff Simulator (src/app/debt-payoff/page.tsx).
-- [x] Connect Plaid Link integration & API routes (src/app/api/plaid/*).
-- [x] Implement Accounts & Credit Utilization (src/app/accounts/page.tsx).
-- [x] Implement Transaction Feed (src/app/transactions/page.tsx).
-- [x] Pushed code to GitHub (https://github.com/guaricool/Bank-app.git).
-- [x] Provisioned & Deployed on Coolify (Project, PostgreSQL DB, Application & Env vars).
-
----
-
-## 6. Coolify Deployment Info
-- Project Name: `Bank App (Family Finance)` (UUID: `kdvns7ag87o73htwv5ecpfhm`)
-- Database: PostgreSQL `bank-app-db` (UUID: `mk0xxdquhc72l0h8zy0hkc3w`)
-- Application: `bank-app-frontend` (UUID: `cruaownacjx753dlh2i3dpev`)
-- Assigned Domain: `http://cruaownacjx753dlh2i3dpev.13.140.181.29.sslip.io`
-- Environment Variables: `DATABASE_URL` linked to internal PostgreSQL instance.
+## Tecnologías Principales
+- **Framework**: Next.js 16 (App Router) + TypeScript + Tailwind CSS.
+- **ORM & BD**: Prisma 7 + PostgreSQL (`@prisma/adapter-pg`).
+- **Integraciones**: Plaid SDK (`plaid`, `react-plaid-link`).
