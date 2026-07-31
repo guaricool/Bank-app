@@ -6,8 +6,8 @@ const plaidConfig = new Configuration({
   basePath: PlaidEnvironments[(process.env.PLAID_ENV || "sandbox") as keyof typeof PlaidEnvironments],
   baseOptions: {
     headers: {
-      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID || "mock_client_id",
-      "PLAID-SECRET": process.env.PLAID_SECRET || "mock_secret",
+      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID || "",
+      "PLAID-SECRET": process.env.PLAID_SECRET || "",
     },
   },
 });
@@ -21,6 +21,16 @@ export async function POST() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
+    if (!process.env.PLAID_CLIENT_ID || !process.env.PLAID_SECRET || process.env.PLAID_CLIENT_ID === "mock_client_id") {
+      return NextResponse.json(
+        {
+          error: "Credenciales de Plaid no configuradas en las variables de entorno de Coolify (PLAID_CLIENT_ID / PLAID_SECRET).",
+          isMock: true,
+        },
+        { status: 400 }
+      );
+    }
+
     const response = await plaidClient.linkTokenCreate({
       user: { client_user_id: user.id },
       client_name: "Family Finance",
@@ -32,10 +42,11 @@ export async function POST() {
     return NextResponse.json({ link_token: response.data.link_token });
   } catch (error: any) {
     console.error("Plaid Create Link Token Error:", error?.response?.data || error);
-    // Return mock link token for sandbox preview if keys are unconfigured
-    return NextResponse.json({
-      link_token: `mock-sandbox-link-token-${Date.now()}`,
-      isMock: true,
-    });
+    return NextResponse.json(
+      {
+        error: error?.response?.data?.error_message || "Error al conectar con la API de Plaid",
+      },
+      { status: 500 }
+    );
   }
 }
