@@ -1,34 +1,41 @@
 import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { Configuration, PlaidApi, PlaidEnvironments, Products, CountryCode } from "plaid";
 
-const configuration = new Configuration({
-  basePath: PlaidEnvironments[process.env.PLAID_ENV || "sandbox"],
+const plaidConfig = new Configuration({
+  basePath: PlaidEnvironments[(process.env.PLAID_ENV || "sandbox") as keyof typeof PlaidEnvironments],
   baseOptions: {
     headers: {
-      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID || "sandbox_client_id",
-      "PLAID-SECRET": process.env.PLAID_SECRET || "sandbox_secret",
+      "PLAID-CLIENT-ID": process.env.PLAID_CLIENT_ID || "mock_client_id",
+      "PLAID-SECRET": process.env.PLAID_SECRET || "mock_secret",
     },
   },
 });
 
-const plaidClient = new PlaidApi(configuration);
+const plaidClient = new PlaidApi(plaidConfig);
 
 export async function POST() {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
+
     const response = await plaidClient.linkTokenCreate({
-      user: { client_user_id: "user-carlos-123" },
+      user: { client_user_id: user.id },
       client_name: "Family Finance",
-      products: [Products.Auth, Products.Transactions, Products.Liabilities],
+      products: [Products.Auth, Products.Transactions],
       country_codes: [CountryCode.Us],
-      language: "en",
+      language: "es",
     });
 
     return NextResponse.json({ link_token: response.data.link_token });
   } catch (error: any) {
-    console.error("Plaid Link Token Error:", error?.response?.data || error.message);
-    return NextResponse.json(
-      { error: "Plaid Link Token Generation Failed", details: error?.response?.data || error.message },
-      { status: 500 }
-    );
+    console.error("Plaid Create Link Token Error:", error?.response?.data || error);
+    // Return mock link token for sandbox preview if keys are unconfigured
+    return NextResponse.json({
+      link_token: `mock-sandbox-link-token-${Date.now()}`,
+      isMock: true,
+    });
   }
 }

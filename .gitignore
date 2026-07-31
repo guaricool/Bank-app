@@ -31,6 +31,7 @@ dev.db
 # misc
 .DS_Store
 *.pem
+*.py
 
 # debug
 npm-debug.log*

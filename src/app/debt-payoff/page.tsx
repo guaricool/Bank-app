@@ -1,290 +1,274 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { 
-  TrendingDown, 
-  Sparkles, 
-  DollarSign, 
-  Calendar, 
-  ShieldCheck, 
-  Zap, 
-  ArrowRight, 
-  CheckCircle2,
-  Info
+import { useEffect, useState } from "react";
+import PlaidLinkButton from "@/components/plaid/PlaidLinkButton";
+import {
+  CreditCard,
+  Car,
+  Home,
+  Flame,
+  Snowflake,
+  AlertCircle,
+  Calculator,
+  Loader2,
+  Percent,
+  Calendar,
 } from "lucide-react";
-import { MOCK_DEBTS } from "@/lib/mock-data";
-import { calculateDebtPayoff, StrategyType } from "@/lib/debt-engine";
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  CartesianGrid 
-} from "recharts";
 
 export default function DebtPayoffPage() {
-  const [strategy, setStrategy] = useState<StrategyType>("AVALANCHE");
-  const [extraMonthly, setExtraMonthly] = useState<number>(400);
-  const [lumpSum, setLumpSum] = useState<number>(0);
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [strategy, setStrategy] = useState<"AVALANCHE" | "SNOWBALL">("AVALANCHE");
+  const [extraPayment, setExtraPayment] = useState<number>(200);
 
-  // Compute live payoff results
-  const result = useMemo(() => {
-    return calculateDebtPayoff(MOCK_DEBTS, strategy, extraMonthly, lumpSum);
-  }, [strategy, extraMonthly, lumpSum]);
+  const fetchDebts = async () => {
+    try {
+      const res = await fetch("/api/financial-summary");
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const totalMinimums = MOCK_DEBTS.reduce((sum, d) => sum + d.minimumPayment, 0);
+  useEffect(() => {
+    fetchDebts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-rose-400" />
+        <p className="text-xs text-zinc-400">Cargando tus tarjetas y deudas...</p>
+      </div>
+    );
+  }
+
+  const debtAccounts = data?.debtAccounts || [];
+  const debtsList = data?.debts || [];
+
+  const totalDebt = debtAccounts.reduce((acc: number, item: any) => acc + Number(item.currentBalance), 0);
+  const totalMinPayment = debtsList.reduce((acc: number, d: any) => acc + Number(d.minimumPayment || 0), 0);
+
+  // Credit card limit calculations
+  const creditCards = debtAccounts.filter((acc: any) => acc.type === "CREDIT_CARD");
+  const totalCardBalance = creditCards.reduce((acc: number, c: any) => acc + Number(c.currentBalance), 0);
+  const totalCardLimit = creditCards.reduce((acc: number, c: any) => acc + Number(c.creditLimit || 0), 0);
+  const utilizationRatio = totalCardLimit > 0 ? Math.round((totalCardBalance / totalCardLimit) * 100) : 0;
+
+  // Payoff simulation calculation
+  const sortedDebts = [...debtsList].sort((a, b) => {
+    if (strategy === "AVALANCHE") {
+      return Number(b.apr || 0) - Number(a.apr || 0); // High APR first
+    }
+    return Number(a.balance) - Number(b.balance); // Smallest balance first
+  });
+
+  // Calculate estimated payoff months
+  let monthsToPayoff = 0;
+  if (totalDebt > 0 && (totalMinPayment + extraPayment) > 0) {
+    monthsToPayoff = Math.ceil(totalDebt / (totalMinPayment + extraPayment));
+  }
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Debt Payoff Simulator</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
-              Interactive
-            </span>
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <CreditCard className="w-6 h-6 text-rose-400" />
+            <span>Deudas y Créditos</span>
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Tarjetas de crédito, préstamos de vehículo, hipotecas y plan acelerado de pago
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <PlaidLinkButton variant="primary" onSuccess={fetchDebts} />
+        </div>
+      </div>
+
+      {/* Top Metrics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Total Debt */}
+        <div className="p-6 rounded-2xl bg-gradient-to-br from-rose-950/30 to-zinc-950 border border-rose-500/30 shadow-lg">
+          <div className="text-xs text-rose-400 font-medium uppercase tracking-wider mb-1">Total Pasivos / Deudas</div>
+          <div className="text-3xl font-extrabold text-white tracking-tight">
+            ${totalDebt.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-sm text-zinc-400 mt-1">
-            Simulate Avalanche (Mathematically Optimal) vs Snowball strategies with extra payment sliders.
+          <p className="text-[11px] text-zinc-500 mt-2">Suma de saldos pendientes en tarjetas y préstamos</p>
+        </div>
+
+        {/* Minimum Monthly Payment */}
+        <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-lg">
+          <div className="text-xs text-zinc-400 font-medium uppercase tracking-wider mb-1">Pago Mínimo Mensual</div>
+          <div className="text-3xl font-extrabold text-amber-400 tracking-tight">
+            ${totalMinPayment.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+          </div>
+          <p className="text-[11px] text-zinc-500 mt-2">Compromiso mínimo mensual requerido</p>
+        </div>
+
+        {/* Credit Utilization */}
+        <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 shadow-lg">
+          <div className="flex items-center justify-between text-xs text-zinc-400 mb-1">
+            <span>Uso de Crédito (Tarjetas)</span>
+            <span className="font-bold text-white">{utilizationRatio}%</span>
+          </div>
+          <div className="w-full bg-zinc-950 rounded-full h-3 border border-zinc-800 overflow-hidden my-3">
+            <div
+              className={`h-full rounded-full transition-all ${
+                utilizationRatio > 50 ? "bg-rose-500" : utilizationRatio > 30 ? "bg-amber-500" : "bg-emerald-500"
+              }`}
+              style={{ width: `${Math.min(utilizationRatio, 100)}%` }}
+            />
+          </div>
+          <p className="text-[11px] text-zinc-500">
+            ${totalCardBalance.toLocaleString("en-US")} de ${totalCardLimit.toLocaleString("en-US")} límite total
           </p>
         </div>
       </div>
 
-      {/* Control Panel Bento */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Strategy Selector */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm text-zinc-100 flex items-center gap-2">
-              <Zap className="w-4 h-4 text-emerald-400" />
-              <span>Payoff Strategy</span>
-            </h2>
+      {/* Debt List Breakdown */}
+      {debtAccounts.length === 0 ? (
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto">
+            <CreditCard className="w-6 h-6 text-rose-400" />
           </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => setStrategy("AVALANCHE")}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                strategy === "AVALANCHE"
-                  ? "bg-emerald-950/40 border-emerald-500 text-emerald-100 shadow-sm"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-              }`}
-            >
-              <div className="font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-between">
-                <span>Avalanche</span>
-                {strategy === "AVALANCHE" && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-1 leading-snug">
-                Highest APR first. Minimizes total interest mathematically.
-              </p>
-            </button>
-
-            <button
-              onClick={() => setStrategy("SNOWBALL")}
-              className={`p-3 rounded-lg border text-left transition-all ${
-                strategy === "SNOWBALL"
-                  ? "bg-blue-950/40 border-blue-500 text-blue-100 shadow-sm"
-                  : "bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
-              }`}
-            >
-              <div className="font-bold text-xs font-mono uppercase tracking-wider flex items-center justify-between">
-                <span>Snowball</span>
-                {strategy === "SNOWBALL" && <CheckCircle2 className="w-3.5 h-3.5 text-blue-400" />}
-              </div>
-              <p className="text-[11px] text-zinc-400 mt-1 leading-snug">
-                Smallest balance first. Builds quick momentum & psychological wins.
-              </p>
-            </button>
+          <h3 className="text-base font-semibold text-white">No tienes deudas ni tarjetas registradas</h3>
+          <p className="text-xs text-zinc-400 max-w-md mx-auto">
+            Conecta tus tarjetas de crédito y préstamos para activar el simulador inteligente de pago.
+          </p>
+          <div className="pt-2">
+            <PlaidLinkButton variant="primary" onSuccess={fetchDebts} />
           </div>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Debt Accounts Cards */}
+          <div className="lg:col-span-2 space-y-4">
+            <h3 className="text-sm font-semibold text-white">Listado de Créditos y Pasivos</h3>
 
-        {/* Sliders & Inputs */}
-        <div className="lg:col-span-2 bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-sm text-zinc-100 flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              <span>Extra Monthly Contribution</span>
-            </h2>
-            <span className="text-sm font-mono font-bold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/60">
-              +${extraMonthly}/mo
-            </span>
-          </div>
+            <div className="space-y-3">
+              {debtAccounts.map((acc: any) => {
+                const debt = acc.debt;
+                const isCard = acc.type === "CREDIT_CARD";
+                const isAuto = acc.subtype?.includes("auto");
+                const isHome = acc.type === "MORTGAGE" || acc.subtype?.includes("mortgage");
 
-          {/* Interactive Range Slider */}
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0"
-              max="2000"
-              step="50"
-              value={extraMonthly}
-              onChange={(e) => setExtraMonthly(Number(e.target.value))}
-              className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-            />
-            <div className="flex justify-between text-[11px] font-mono text-zinc-500">
-              <span>+$0/mo (Min payments only)</span>
-              <span>+$1,000/mo</span>
-              <span>+$2,000/mo</span>
+                return (
+                  <div
+                    key={acc.id}
+                    className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center shrink-0">
+                        {isHome ? (
+                          <Home className="w-5 h-5 text-indigo-400" />
+                        ) : isAuto ? (
+                          <Car className="w-5 h-5 text-amber-400" />
+                        ) : (
+                          <CreditCard className="w-5 h-5 text-rose-400" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-white">{acc.name}</h4>
+                        <div className="flex items-center gap-3 text-[11px] text-zinc-400 mt-1">
+                          <span>{acc.subtype || acc.type}</span>
+                          {debt?.apr && (
+                            <span className="text-rose-400 font-medium bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20">
+                              APR: {debt.apr}%
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right border-t sm:border-t-0 pt-3 sm:pt-0 border-zinc-800">
+                      <div className="text-xs text-zinc-400">Saldo Pendiente</div>
+                      <div className="text-lg font-bold text-rose-400">
+                        ${Number(acc.currentBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </div>
+                      {debt?.minimumPayment && (
+                        <div className="text-[10px] text-zinc-500">Mínimo: ${Number(debt.minimumPayment).toFixed(2)}/mes</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          {/* One-time Lump Sum Input */}
-          <div className="pt-3 border-t border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Interactive Debt Payoff Simulator */}
+          <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800 space-y-6 h-fit">
             <div>
-              <label className="text-xs font-medium text-zinc-300">One-Time Lump Sum Payment</label>
-              <p className="text-[11px] text-zinc-500">Apply a bonus, tax refund, or savings dump immediately.</p>
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-emerald-400" />
+                <span>Simulador de Pago Acelerado</span>
+              </h3>
+              <p className="text-xs text-zinc-400 mt-1">Calcula en cuánto tiempo quedarás libre de deudas.</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-400 font-mono">$</span>
-              <input
-                type="number"
-                min="0"
-                step="250"
-                value={lumpSum}
-                onChange={(e) => setLumpSum(Math.max(0, Number(e.target.value)))}
-                placeholder="e.g. 1000"
-                className="w-32 bg-zinc-950 border border-zinc-700 rounded-md px-3 py-1.5 text-xs text-zinc-100 font-mono focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Dynamic Results Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {/* Freedom Date */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5">
-          <div className="text-xs text-zinc-400 flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Debt-Free Target</span>
-          </div>
-          <div className="text-xl font-bold text-emerald-400 font-mono mt-2">
-            {result.payoffDate}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-1 font-mono">
-            {result.totalMonths} months total duration
-          </div>
-        </div>
-
-        {/* Total Interest Paid */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5">
-          <div className="text-xs text-zinc-400">Total Interest Cost</div>
-          <div className="text-xl font-bold text-zinc-100 font-mono mt-2">
-            ${result.totalInterestPaid.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-1 font-mono">
-            On ${result.totalPrincipalPaid.toLocaleString()} initial debt
-          </div>
-        </div>
-
-        {/* Interest Saved */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5">
-          <div className="text-xs text-zinc-400">Interest Saved vs Minimums</div>
-          <div className="text-xl font-bold text-emerald-400 font-mono mt-2">
-            +${result.interestSavedVsMin.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-          </div>
-          <div className="text-[11px] text-emerald-500/80 mt-1 font-mono">
-            Cash kept in your pocket
-          </div>
-        </div>
-
-        {/* Time Saved */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5">
-          <div className="text-xs text-zinc-400">Time Saved vs Minimums</div>
-          <div className="text-xl font-bold text-emerald-400 font-mono mt-2">
-            {result.monthsSavedVsMin} Months Faster
-          </div>
-          <div className="text-[11px] text-zinc-500 mt-1 font-mono">
-            {(result.monthsSavedVsMin / 12).toFixed(1)} years cut off timeline
-          </div>
-        </div>
-      </div>
-
-      {/* Interactive Payoff Chart */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-semibold text-sm text-zinc-100">Projected Debt Elimination Trajectory</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Month-by-month balance trajectory under {strategy}</p>
-          </div>
-          <div className="text-xs font-mono text-zinc-400">
-            Total Monthly Budget: <strong className="text-emerald-400">${(totalMinimums + extraMonthly).toLocaleString()}/mo</strong>
-          </div>
-        </div>
-
-        <div className="h-64 w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={result.monthlyBalances} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-              <XAxis dataKey="dateLabel" stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} />
-              <Tooltip
-                contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", borderRadius: "6px", fontSize: "12px" }}
-                formatter={(val: any) => [`$${Number(val).toLocaleString()}`, "Balance"]}
-              />
-              <Line type="monotone" dataKey="totalBalance" stroke="#10b981" strokeWidth={2.5} dot={false} name="Total Debt" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* Payoff Queue / Ordered Cards */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-          <div>
-            <h2 className="font-semibold text-sm text-zinc-100">Recommended Payoff Execution Order</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Target debts in sequence while maintaining minimums on others</p>
-          </div>
-          <span className="text-xs font-mono text-zinc-400">
-            Strategy: <strong className="text-zinc-200">{strategy}</strong>
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {result.payoffOrder.map((item, idx) => {
-            const debt = MOCK_DEBTS.find((d) => d.id === item.id)!;
-            return (
-              <div
-                key={item.id}
-                className={`p-4 rounded-lg border flex flex-col justify-between space-y-3 relative ${
-                  idx === 0
-                    ? "bg-emerald-950/20 border-emerald-600/80 shadow-md shadow-emerald-950/40"
-                    : "bg-zinc-950/60 border-zinc-800"
+            {/* Strategy Selector */}
+            <div className="grid grid-cols-2 gap-2 p-1 bg-zinc-950 rounded-xl border border-zinc-800">
+              <button
+                onClick={() => setStrategy("AVALANCHE")}
+                className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition ${
+                  strategy === "AVALANCHE"
+                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                    : "text-zinc-400 hover:text-white"
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-mono font-bold ${
-                    idx === 0 ? "bg-emerald-500 text-zinc-950" : "bg-zinc-800 text-zinc-300"
-                  }`}>
-                    #{idx + 1}
-                  </span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300">
-                    {debt.apr}% APR
-                  </span>
-                </div>
+                <Flame className="w-3.5 h-3.5" />
+                <span>Avalancha</span>
+              </button>
 
-                <div>
-                  <h3 className="font-semibold text-sm text-zinc-100">{debt.name}</h3>
-                  <div className="text-lg font-bold font-mono text-zinc-100 mt-1">
-                    ${debt.balance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </div>
-                  <div className="text-[11px] text-zinc-500 font-mono mt-0.5">
-                    Min payment: ${debt.minimumPayment}/mo
-                  </div>
-                </div>
+              <button
+                onClick={() => setStrategy("SNOWBALL")}
+                className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition ${
+                  strategy === "SNOWBALL"
+                    ? "bg-teal-500/20 text-teal-400 border border-teal-500/30"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+              >
+                <Snowflake className="w-3.5 h-3.5" />
+                <span>Bola de Nieve</span>
+              </button>
+            </div>
 
-                <div className="pt-3 border-t border-zinc-800/80 text-[11px] font-mono flex items-center justify-between">
-                  <span className="text-zinc-400">Target Payoff:</span>
-                  <span className="text-emerald-400 font-semibold">{item.payoffDate}</span>
-                </div>
+            {/* Extra Monthly Payment Slider */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-zinc-400">Pago Adicional Mensual:</span>
+                <span className="font-bold text-emerald-400">${extraPayment}/mes</span>
               </div>
-            );
-          })}
+              <input
+                type="range"
+                min={0}
+                max={2000}
+                step={50}
+                value={extraPayment}
+                onChange={(e) => setExtraPayment(Number(e.target.value))}
+                className="w-full accent-emerald-400 bg-zinc-950 rounded-lg cursor-pointer"
+              />
+            </div>
+
+            {/* Simulation Result */}
+            <div className="p-4 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2 text-center">
+              <div className="text-xs text-zinc-400">Tiempo Estimado Libre de Deuda</div>
+              <div className="text-2xl font-black text-emerald-400">{monthsToPayoff} Meses</div>
+              <p className="text-[10px] text-zinc-500">
+                Pagando ${totalMinPayment + extraPayment}/mes en estrategia{" "}
+                {strategy === "AVALANCHE" ? "Avalancha (mayor interés primero)" : "Bola de Nieve (menor saldo primero)"}.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

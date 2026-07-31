@@ -1,291 +1,274 @@
 "use client";
 
-import Link from "next/link";
-import { 
-  TrendingUp, 
-  ArrowUpRight, 
-  ArrowDownRight, 
-  ShieldAlert, 
-  Flame, 
-  Wallet, 
-  ChevronRight,
+import { useEffect, useState } from "react";
+import PlaidLinkButton from "@/components/plaid/PlaidLinkButton";
+import {
+  Wallet,
+  CreditCard,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
   Sparkles,
-  ArrowRight
+  ShieldCheck,
+  Landmark,
+  Loader2,
 } from "lucide-react";
-import { 
-  AreaChart, 
-  Area, 
-  XAxis, 
-  YAxis, 
-  Tooltip, 
-  ResponsiveContainer, 
-  CartesianGrid 
-} from "recharts";
-import { MOCK_NET_WORTH_HISTORY, MOCK_ACCOUNTS, MOCK_TRANSACTIONS } from "@/lib/mock-data";
 
-export default function OverviewDashboard() {
-  const currentSnapshot = MOCK_NET_WORTH_HISTORY[MOCK_NET_WORTH_HISTORY.length - 1];
-  const previousSnapshot = MOCK_NET_WORTH_HISTORY[MOCK_NET_WORTH_HISTORY.length - 2];
-  
-  const netWorthDelta = currentSnapshot.netWorth - previousSnapshot.netWorth;
-  const netWorthPct = ((netWorthDelta / previousSnapshot.netWorth) * 100).toFixed(1);
+export default function GeneralOverviewPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
-  // Highest APR debt for quick alert
-  const highestAprDebt = MOCK_ACCOUNTS
-    .filter(a => a.isLiability && a.apr)
-    .sort((a, b) => (b.apr || 0) - (a.apr || 0))[0];
+  const fetchSummary = async () => {
+    try {
+      const res = await fetch("/api/financial-summary");
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSummary();
+  }, []);
+
+  const handleSeedDemo = async () => {
+    setSeeding(true);
+    try {
+      const res = await fetch("/api/seed-demo", { method: "POST" });
+      if (res.ok) {
+        await fetchSummary();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        <p className="text-xs text-zinc-400">Cargando tus datos financieros privados...</p>
+      </div>
+    );
+  }
+
+  const hasAccounts = data?.hasData;
+  const summary = data?.summary || { netWorth: 0, totalAssets: 0, totalDebts: 0, liquidAssets: 0 };
+  const transactions = data?.transactions || [];
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Top Banner: JTBD Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+    <div className="space-y-8 max-w-7xl mx-auto">
+      {/* Header Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Financial Command Center</h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Real-time net worth, monthly burn rate, and priority debt payoff trajectory.
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            Resumen General Financiero
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Vista unificada de activos líquidos y pasivos para {data?.user?.name || data?.user?.email}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/debt-payoff"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-semibold text-xs transition-all shadow-sm shadow-emerald-900/40"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Launch Debt Simulator</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+          <PlaidLinkButton variant="primary" onSuccess={fetchSummary} />
         </div>
       </div>
 
-      {/* Priority Alert Banner */}
-      {highestAprDebt && (
-        <div className="bg-rose-950/30 border border-rose-900/60 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-md bg-rose-900/40 border border-rose-800/60 text-rose-400 mt-0.5">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-sm text-rose-200">High Interest Priority Alert</h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-rose-900/60 text-rose-300 border border-rose-700">
-                  {highestAprDebt.apr}% APR
-                </span>
+      {/* Clean Slate State if No Accounts Linked */}
+      {!hasAccounts ? (
+        <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 rounded-3xl p-10 text-center space-y-6 relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-[100px] pointer-events-none" />
+
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto relative z-10">
+            <Landmark className="w-8 h-8 text-emerald-400" />
+          </div>
+
+          <div className="max-w-md mx-auto space-y-2 relative z-10">
+            <h2 className="text-xl font-bold text-white">Tu Dashboard está 100% Limpio</h2>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              No tienes ninguna cuenta ni pasivo vinculado. Conecta tus cuentas bancarias y tarjetas de crédito vía Plaid para sincronizar tus saldos y deudas en tiempo real.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10 pt-2">
+            <PlaidLinkButton variant="hero" onSuccess={fetchSummary} />
+
+            <button
+              onClick={handleSeedDemo}
+              disabled={seeding}
+              className="px-5 py-3.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-medium rounded-xl text-sm border border-zinc-800 transition flex items-center gap-2 disabled:opacity-50"
+            >
+              {seeding ? <Loader2 className="w-4 h-4 animate-spin text-emerald-400" /> : <Sparkles className="w-4 h-4 text-emerald-400" />}
+              <span>Probar Datos Demo</span>
+            </button>
+          </div>
+
+          <div className="pt-4 border-t border-zinc-900 text-[11px] text-zinc-500 flex items-center justify-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-500/80" />
+            <span>Encriptación bancaria SSL de 256 bits. Tus credenciales nunca se almacenan.</span>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Top Key Metrics Tiles */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Patrimonio Neto */}
+            <div className="p-6 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-zinc-800/80 relative overflow-hidden shadow-lg">
+              <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                <span>Patrimonio Neto Total</span>
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
               </div>
-              <p className="text-xs text-rose-300/80 mt-1">
-                <strong className="text-rose-200">{highestAprDebt.name}</strong> carries ${highestAprDebt.currentBalance.toLocaleString()} balance. Payoff avalanche recommends targeting this first.
-              </p>
-            </div>
-          </div>
-
-          <Link
-            href="/debt-payoff"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-300 hover:text-rose-100 font-mono underline decoration-rose-600 underline-offset-4"
-          >
-            <span>Run Avalanche Payoff</span>
-            <ChevronRight className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-
-      {/* Hero Metrics Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Net Worth */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 relative overflow-hidden group hover:border-zinc-700 transition-all">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Net Worth</span>
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-zinc-100 font-mono tracking-tight">
-              ${currentSnapshot.netWorth.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="flex items-center gap-1.5 mt-2 text-xs font-mono text-emerald-400">
-              <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>+${netWorthDelta.toLocaleString()} ({netWorthPct}%)</span>
-              <span className="text-zinc-500 font-sans text-[11px] ml-1">vs last mo</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 2: Total Assets */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 relative overflow-hidden group hover:border-zinc-700 transition-all">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Total Assets</span>
-            <Wallet className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-zinc-100 font-mono tracking-tight">
-              ${currentSnapshot.assets.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-zinc-500 mt-2 font-mono">
-              4 Accounts (Cash + Investments + Real Estate)
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 3: Total Liabilities */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 relative overflow-hidden group hover:border-zinc-700 transition-all">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Total Liabilities</span>
-            <ArrowDownRight className="w-4 h-4 text-rose-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-zinc-100 font-mono tracking-tight">
-              ${currentSnapshot.liabilities.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-zinc-400 mt-2 font-mono flex items-center gap-1">
-              <span>Avg APR: 14.5%</span>
-              <span>•</span>
-              <span className="text-rose-400">4 Active Debts</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Metric 4: Monthly Burn Rate */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 relative overflow-hidden group hover:border-zinc-700 transition-all">
-          <div className="flex items-center justify-between text-xs text-zinc-400 font-medium">
-            <span>Monthly Burn Rate</span>
-            <Flame className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="mt-3">
-            <div className="text-2xl font-bold text-zinc-100 font-mono tracking-tight">
-              ${currentSnapshot.burnRate.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-            </div>
-            <div className="text-[11px] text-zinc-500 mt-2 font-mono">
-              Avg 30-day baseline cash burn
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Net Worth Chart & Asset/Liability Ratio */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recharts Net Worth Trajectory */}
-        <div className="lg:col-span-2 bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="font-semibold text-sm text-zinc-100">Net Worth Trajectory</h2>
-              <p className="text-xs text-zinc-400 mt-0.5">12-month historical progression</p>
-            </div>
-            <div className="flex items-center gap-3 text-xs font-mono">
-              <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Net Worth
-              </span>
-              <span className="flex items-center gap-1 text-rose-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> Liabilities
-              </span>
-            </div>
-          </div>
-
-          <div className="h-64 w-full pt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={MOCK_NET_WORTH_HISTORY} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="netWorthGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="liabilitiesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
-                <XAxis dataKey="date" stroke="#71717a" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis 
-                  stroke="#71717a" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false} 
-                  tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} 
-                />
-                <Tooltip
-                  contentStyle={{ backgroundColor: "#18181b", borderColor: "#27272a", borderRadius: "6px", fontSize: "12px" }}
-                  formatter={(val: any) => [`$${Number(val).toLocaleString()}`, ""]}
-                />
-                <Area type="monotone" dataKey="netWorth" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#netWorthGrad)" name="Net Worth" />
-                <Area type="monotone" dataKey="liabilities" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#liabilitiesGrad)" name="Liabilities" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Account Breakdown Summary */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-              <h2 className="font-semibold text-sm text-zinc-100">Accounts & Balances</h2>
-              <Link href="/accounts" className="text-xs text-emerald-400 hover:underline font-mono">
-                View All →
-              </Link>
+              <div className="text-3xl font-bold text-white tracking-tight">
+                ${summary.netWorth.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Activos Líquidos - Deudas Totales</p>
             </div>
 
-            <div className="divide-y divide-zinc-800/60 mt-3">
-              {MOCK_ACCOUNTS.map((acc) => (
-                <div key={acc.id} className="py-2.5 flex items-center justify-between text-xs">
-                  <div>
-                    <div className="font-medium text-zinc-200">{acc.name}</div>
-                    <div className="text-[11px] text-zinc-400 font-mono">{acc.institution}</div>
-                  </div>
-                  <div className={`font-mono font-semibold ${acc.isLiability ? "text-rose-400" : "text-zinc-100"}`}>
-                    {acc.isLiability ? "-" : ""}${acc.currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                  </div>
+            {/* Cuentas y Ahorros */}
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 shadow-lg">
+              <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                <span>Total Activos (Ahorros / Débito)</span>
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <Wallet className="w-4 h-4 text-emerald-400" />
                 </div>
-              ))}
+              </div>
+              <div className="text-3xl font-bold text-emerald-400 tracking-tight">
+                ${summary.totalAssets.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Disponible en cuentas líquidas</p>
+            </div>
+
+            {/* Total Deudas */}
+            <div className="p-6 rounded-2xl bg-zinc-900/80 border border-zinc-800/80 shadow-lg">
+              <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+                <span>Total Pasivos (Deudas)</span>
+                <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
+                  <CreditCard className="w-4 h-4 text-rose-400" />
+                </div>
+              </div>
+              <div className="text-3xl font-bold text-rose-400 tracking-tight">
+                ${summary.totalDebts.toLocaleString("en-US", { minimumFractionDigits: 2 })}
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-2">Tarjetas de crédito y préstamos</p>
             </div>
           </div>
 
-          <div className="pt-3 border-t border-zinc-800 text-[11px] text-zinc-400 font-mono flex items-center justify-between">
-            <span>Net Ratio: 93.4% Equity</span>
-            <span className="text-emerald-400 font-semibold">Healthy</span>
-          </div>
-        </div>
-      </div>
+          {/* Accounts Breakdown & Quick Actions */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Liquid Accounts Preview */}
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-emerald-400" />
+                  <span>Cuentas de Ahorro y Débito</span>
+                </h3>
+                <a href="/accounts" className="text-xs text-emerald-400 hover:underline">
+                  Ver Todo →
+                </a>
+              </div>
 
-      {/* Recent Transactions Feed */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-          <div>
-            <h2 className="font-semibold text-sm text-zinc-100">Recent Transactions</h2>
-            <p className="text-xs text-zinc-400 mt-0.5">Filtered category burn across linked accounts</p>
-          </div>
-          <Link href="/transactions" className="text-xs text-zinc-400 hover:text-zinc-200 font-mono">
-            Full Feed →
-          </Link>
-        </div>
+              <div className="space-y-2">
+                {data?.liquidAccounts?.map((acc: any) => (
+                  <div
+                    key={acc.id}
+                    className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/60 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-medium text-white">{acc.name}</div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider">{acc.type}</div>
+                    </div>
+                    <div className="text-xs font-bold text-emerald-400">
+                      ${Number(acc.currentBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="text-zinc-400 font-mono uppercase text-[10px] border-b border-zinc-800/80">
-                <th className="py-2 px-3">Date</th>
-                <th className="py-2 px-3">Description</th>
-                <th className="py-2 px-3">Category</th>
-                <th className="py-2 px-3">Account</th>
-                <th className="py-2 px-3 text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/40">
-              {MOCK_TRANSACTIONS.slice(0, 5).map((tx) => (
-                <tr key={tx.id} className="data-table-row">
-                  <td className="py-3 px-3 font-mono text-zinc-400">{tx.date}</td>
-                  <td className="py-3 px-3 font-medium text-zinc-200">{tx.merchantName}</td>
-                  <td className="py-3 px-3">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700">
-                      {tx.category}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-zinc-400 font-mono text-[11px]">{tx.accountName}</td>
-                  <td className={`py-3 px-3 text-right font-mono font-semibold ${tx.amount < 0 ? "text-emerald-400" : "text-zinc-200"}`}>
-                    {tx.amount < 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            {/* Debt Accounts Preview */}
+            <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                  <CreditCard className="w-4 h-4 text-rose-400" />
+                  <span>Tarjetas y Deudas</span>
+                </h3>
+                <a href="/debt-payoff" className="text-xs text-rose-400 hover:underline">
+                  Simular Pago →
+                </a>
+              </div>
+
+              <div className="space-y-2">
+                {data?.debtAccounts?.map((acc: any) => (
+                  <div
+                    key={acc.id}
+                    className="p-3.5 rounded-xl bg-zinc-950 border border-zinc-800/60 flex items-center justify-between"
+                  >
+                    <div>
+                      <div className="text-xs font-medium text-white">{acc.name}</div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider">
+                        {acc.debt?.apr ? `APR: ${acc.debt.apr}%` : acc.type}
+                      </div>
+                    </div>
+                    <div className="text-xs font-bold text-rose-400">
+                      ${Number(acc.currentBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Recent Transactions List */}
+          <div className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-white">Actividad Reciente</h3>
+              <a href="/transactions" className="text-xs text-emerald-400 hover:underline">
+                Ver todas las transacciones →
+              </a>
+            </div>
+
+            {transactions.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-4 text-center">No hay transacciones recientes registradas.</p>
+            ) : (
+              <div className="divide-y divide-zinc-800/60">
+                {transactions.slice(0, 5).map((tx: any) => {
+                  const isIncome = Number(tx.amount) < 0 || tx.category === "Ingreso";
+                  return (
+                    <div key={tx.id} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            isIncome ? "bg-emerald-500/10 text-emerald-400" : "bg-zinc-800 text-zinc-400"
+                          }`}
+                        >
+                          {isIncome ? <ArrowDownRight className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-white">{tx.name}</div>
+                          <div className="text-[10px] text-zinc-500">
+                            {new Date(tx.date).toLocaleDateString("es-ES")} • {tx.category || "General"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`text-xs font-bold ${isIncome ? "text-emerald-400" : "text-zinc-200"}`}>
+                        {isIncome ? "+" : "-"}${Math.abs(Number(tx.amount)).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

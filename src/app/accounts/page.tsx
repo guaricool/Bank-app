@@ -1,186 +1,138 @@
 "use client";
 
-import { 
-  WalletCards, 
-  Plus, 
-  CreditCard, 
-  Building2, 
-  TrendingUp, 
-  AlertTriangle, 
-  CheckCircle,
-  Landmark
-} from "lucide-react";
-import { MOCK_ACCOUNTS } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import PlaidLinkButton from "@/components/plaid/PlaidLinkButton";
+import { Wallet, Landmark, ArrowUpRight, Loader2, Plus, Building2 } from "lucide-react";
 
-export default function AccountsPage() {
-  const creditCards = MOCK_ACCOUNTS.filter((a) => a.type === "CREDIT_CARD");
-  const totalCreditLimit = creditCards.reduce((sum, c) => sum + (c.creditLimit || 0), 0);
-  const totalCreditUsed = creditCards.reduce((sum, c) => sum + c.currentBalance, 0);
-  const overallUtilization = ((totalCreditUsed / totalCreditLimit) * 100).toFixed(1);
+export default function SavingsAndCheckingPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  const cashAccounts = MOCK_ACCOUNTS.filter((a) => a.type === "CHECKING" || a.type === "SAVINGS");
-  const investmentAccounts = MOCK_ACCOUNTS.filter((a) => a.type === "INVESTMENT" || a.type === "ASSET");
-  const loanAccounts = MOCK_ACCOUNTS.filter((a) => a.type === "LOAN" || a.type === "MORTGAGE");
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch("/api/financial-summary");
+      if (res.ok) {
+        const json = await res.json();
+        setData(json);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[70vh] gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+        <p className="text-xs text-zinc-400">Cargando cuentas líquidas...</p>
+      </div>
+    );
+  }
+
+  const liquidAccounts = data?.liquidAccounts || [];
+  const totalLiquid = liquidAccounts.reduce((acc: number, item: any) => acc + Number(item.currentBalance), 0);
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Accounts & Credit Utilization</h1>
-          <p className="text-sm text-zinc-400 mt-1">
-            Monitor bank account balances, credit card utilization thresholds, and manual assets.
+          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+            <Wallet className="w-6 h-6 text-emerald-400" />
+            <span>Cuentas de Ahorro y Débito</span>
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            Gestión exclusiva de tus fondos disponibles y depósitos a la vista
           </p>
         </div>
 
-        <button className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-xs font-semibold text-zinc-200 transition-all font-mono">
-          <Plus className="w-4 h-4 text-emerald-400" />
-          <span>Add Manual Asset/Debt</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <PlaidLinkButton variant="primary" onSuccess={fetchAccounts} />
+        </div>
       </div>
 
-      {/* Credit Utilization Gauge Card */}
-      <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-zinc-800">
-          <div>
-            <div className="flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-emerald-400" />
-              <h2 className="font-semibold text-sm text-zinc-100">Overall Credit Utilization Ratio</h2>
-            </div>
-            <p className="text-xs text-zinc-400 mt-0.5">Recommended threshold is below 30% for credit score optimization.</p>
+      {/* Summary Card */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-zinc-900 to-zinc-950 border border-emerald-500/20 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="text-xs text-emerald-400 font-medium uppercase tracking-wider mb-1">
+            Total en Efectivo y Fondos Disponibles
           </div>
-
-          <div className="flex items-center gap-3">
-            <span className="text-2xl font-bold font-mono text-zinc-100">{overallUtilization}%</span>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-mono border ${
-              Number(overallUtilization) < 30 
-                ? "bg-emerald-950/60 text-emerald-400 border-emerald-800" 
-                : "bg-amber-950/60 text-amber-400 border-amber-800"
-            }`}>
-              {Number(overallUtilization) < 30 ? "Optimal Utilization" : "Moderate Risk"}
-            </span>
+          <div className="text-4xl font-extrabold text-white tracking-tight">
+            ${totalLiquid.toLocaleString("en-US", { minimumFractionDigits: 2 })}
           </div>
+          <p className="text-xs text-zinc-400 mt-1">Suma de cuentas de cheques y ahorros vinculadas</p>
         </div>
 
-        {/* Individual Credit Card Utilization Gauges */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-          {creditCards.map((card) => {
-            const cardUtil = card.creditLimit ? ((card.currentBalance / card.creditLimit) * 100).toFixed(1) : "0";
-            const utilNum = Number(cardUtil);
+        <div className="flex items-center gap-4 text-xs">
+          <div className="p-3 bg-zinc-900/80 border border-zinc-800 rounded-xl">
+            <div className="text-zinc-500">Cuentas Vinculadas</div>
+            <div className="text-lg font-bold text-white mt-0.5">{liquidAccounts.length}</div>
+          </div>
+        </div>
+      </div>
 
+      {/* Account List Grid */}
+      {liquidAccounts.length === 0 ? (
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto">
+            <Landmark className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h3 className="text-base font-semibold text-white">No tienes cuentas de ahorro o débito conectadas</h3>
+          <p className="text-xs text-zinc-400 max-w-md mx-auto">
+            Conecta tus bancos con Plaid para importar automáticamente tus cuentas de cheques y ahorros.
+          </p>
+          <div className="pt-2">
+            <PlaidLinkButton variant="primary" onSuccess={fetchAccounts} />
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {liquidAccounts.map((acc: any) => {
+            const isSavings = acc.type === "SAVINGS" || acc.subtype === "savings";
             return (
-              <div key={card.id} className="p-4 rounded-lg bg-zinc-950/60 border border-zinc-800 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-xs text-zinc-100">{card.name}</h3>
-                    <p className="text-[11px] text-zinc-500 font-mono">{card.institution} • {card.apr}% APR</p>
+              <div
+                key={acc.id}
+                className="p-6 rounded-2xl bg-zinc-900/70 border border-zinc-800 hover:border-emerald-500/30 transition-all shadow-md group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <span
+                      className={`text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                        isSavings
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                          : "bg-teal-500/10 text-teal-400 border border-teal-500/20"
+                      }`}
+                    >
+                      {isSavings ? "Ahorros" : "Cheques / Débito"}
+                    </span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-zinc-200">{cardUtil}%</span>
+
+                  <h3 className="text-sm font-semibold text-white group-hover:text-emerald-400 transition">
+                    {acc.name}
+                  </h3>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">{acc.officialName || acc.subtype || "Cuenta Débito"}</p>
                 </div>
 
-                {/* Progress Bar */}
-                <div className="w-full h-2 bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      utilNum > 50 ? "bg-rose-500" : utilNum > 30 ? "bg-amber-500" : "bg-emerald-500"
-                    }`}
-                    style={{ width: `${Math.min(100, utilNum)}%` }}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
-                  <span>Balance: ${card.currentBalance.toLocaleString()}</span>
-                  <span>Limit: ${card.creditLimit?.toLocaleString()}</span>
+                <div className="mt-6 pt-4 border-t border-zinc-800/60">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-wider">Saldo Disponible</div>
+                  <div className="text-2xl font-bold text-white tracking-tight mt-0.5">
+                    ${Number(acc.currentBalance).toLocaleString("en-US", { minimumFractionDigits: 2 })}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-
-      {/* Account Categories */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Cash Accounts */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-            <h2 className="font-semibold text-sm text-zinc-100 flex items-center gap-2">
-              <Landmark className="w-4 h-4 text-emerald-400" />
-              <span>Cash & Liquidity</span>
-            </h2>
-            <span className="text-xs font-mono text-emerald-400 font-semibold">
-              ${cashAccounts.reduce((s, a) => s + a.currentBalance, 0).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {cashAccounts.map((acc) => (
-              <div key={acc.id} className="p-3 rounded bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-xs text-zinc-200">{acc.name}</div>
-                  <div className="text-[11px] text-zinc-500 font-mono">{acc.institution}</div>
-                </div>
-                <div className="font-mono font-semibold text-xs text-zinc-100">
-                  ${acc.currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Investment & Real Estate */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-            <h2 className="font-semibold text-sm text-zinc-100 flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-blue-400" />
-              <span>Investments & Assets</span>
-            </h2>
-            <span className="text-xs font-mono text-blue-400 font-semibold">
-              ${investmentAccounts.reduce((s, a) => s + a.currentBalance, 0).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {investmentAccounts.map((acc) => (
-              <div key={acc.id} className="p-3 rounded bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-xs text-zinc-200">{acc.name}</div>
-                  <div className="text-[11px] text-zinc-500 font-mono">{acc.institution}</div>
-                </div>
-                <div className="font-mono font-semibold text-xs text-zinc-100">
-                  ${acc.currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Loans & Long-Term Liabilities */}
-        <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-            <h2 className="font-semibold text-sm text-zinc-100 flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-rose-400" />
-              <span>Fixed Loans & Debt</span>
-            </h2>
-            <span className="text-xs font-mono text-rose-400 font-semibold">
-              ${loanAccounts.reduce((s, a) => s + a.currentBalance, 0).toLocaleString()}
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {loanAccounts.map((acc) => (
-              <div key={acc.id} className="p-3 rounded bg-zinc-950/60 border border-zinc-800/80 flex items-center justify-between">
-                <div>
-                  <div className="font-medium text-xs text-zinc-200">{acc.name}</div>
-                  <div className="text-[11px] text-zinc-500 font-mono">{acc.institution} • {acc.apr}% APR</div>
-                </div>
-                <div className="font-mono font-semibold text-xs text-rose-400">
-                  -${acc.currentBalance.toLocaleString("en-US", { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
