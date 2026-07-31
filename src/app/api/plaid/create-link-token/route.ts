@@ -31,22 +31,44 @@ export async function POST() {
       );
     }
 
-    const response = await plaidClient.linkTokenCreate({
-      user: { client_user_id: user.id },
-      client_name: "Family Finance",
-      products: [Products.Auth, Products.Transactions],
-      country_codes: [CountryCode.Us],
-      language: "es",
-    });
+    // Try creating link token with Transactions product first
+    try {
+      const response = await plaidClient.linkTokenCreate({
+        user: { client_user_id: user.id },
+        client_name: "Family Finance",
+        products: [Products.Transactions],
+        country_codes: [CountryCode.Us],
+        language: "es",
+      });
 
-    return NextResponse.json({ link_token: response.data.link_token });
+      return NextResponse.json({ link_token: response.data.link_token });
+    } catch (primaryErr: any) {
+      const plaidError = primaryErr?.response?.data;
+      console.warn("Plaid Primary linkTokenCreate Error:", plaidError || primaryErr);
+
+      // If transactions product threw, try fallback with auth product
+      if (plaidError?.error_code === "INVALID_PRODUCT") {
+        const fallbackRes = await plaidClient.linkTokenCreate({
+          user: { client_user_id: user.id },
+          client_name: "Family Finance",
+          products: [Products.Auth],
+          country_codes: [CountryCode.Us],
+          language: "es",
+        });
+        return NextResponse.json({ link_token: fallbackRes.data.link_token });
+      }
+
+      throw primaryErr;
+    }
   } catch (error: any) {
-    console.error("Plaid Create Link Token Error:", error?.response?.data || error);
+    const plaidError = error?.response?.data;
+    console.error("Plaid Create Link Token Final Error:", plaidError || error);
     return NextResponse.json(
       {
-        error: error?.response?.data?.error_message || "Error al conectar con la API de Plaid",
+        error: plaidError?.error_message || error?.message || "Error al conectar con la API de Plaid",
+        code: plaidError?.error_code || "PLAID_ERROR",
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }
