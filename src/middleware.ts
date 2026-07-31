@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/register") ||
     pathname.startsWith("/api/auth/login") ||
     pathname.startsWith("/api/auth/register") ||
+    pathname.startsWith("/api/auth/me") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico");
 
