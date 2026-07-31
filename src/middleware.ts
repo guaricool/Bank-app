@@ -15,6 +15,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/favicon.ico");
 
   if (!token && !isPublicPath) {
+    // Return 401 JSON for API calls instead of redirecting POST/GET API calls to HTML page
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -30,5 +34,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

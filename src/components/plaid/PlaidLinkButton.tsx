@@ -19,6 +19,10 @@ export default function PlaidLinkButton({ onSuccess, className = "", variant = "
     setLoading(true);
     try {
       const res = await fetch("/api/plaid/create-link-token", { method: "POST" });
+      if (!res.ok) {
+        console.warn("Plaid token request returned status:", res.status);
+        return;
+      }
       const data = await res.json();
       if (data.link_token) {
         setToken(data.link_token);
@@ -61,6 +65,10 @@ export default function PlaidLinkButton({ onSuccess, className = "", variant = "
       setLoading(true);
       try {
         const res = await fetch("/api/plaid/create-link-token", { method: "POST" });
+        if (!res.ok) {
+          console.warn("Plaid token request returned status:", res.status);
+          return;
+        }
         const data = await res.json();
         if (data.link_token) {
           setToken(data.link_token);
