@@ -4,7 +4,14 @@ import { comparePassword, setSessionCookie } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "JSON en la solicitud inválido" }, { status: 400 });
+    }
+
+    const { email, password } = body || {};
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email y contraseña requeridos" }, { status: 400 });
@@ -36,7 +43,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, user: sessionUser });
   } catch (error: any) {
-    console.error("Login Error:", error);
-    return NextResponse.json({ error: "Error al iniciar sesión" }, { status: 500 });
+    console.error("Login Exception:", error);
+    return NextResponse.json({ error: error?.message || "Error al iniciar sesión" }, { status: 500 });
   }
 }

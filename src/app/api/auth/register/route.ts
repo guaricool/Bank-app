@@ -4,7 +4,14 @@ import { hashPassword, setSessionCookie } from "@/lib/auth";
 
 export async function POST(req: Request) {
   try {
-    const { name, email, password } = await req.json();
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "JSON en la solicitud inválido" }, { status: 400 });
+    }
+
+    const { name, email, password } = body || {};
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email y contraseña requeridos" }, { status: 400 });
@@ -43,7 +50,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true, user: sessionUser });
   } catch (error: any) {
-    console.error("Register Error:", error);
-    return NextResponse.json({ error: "Error al registrar usuario" }, { status: 500 });
+    console.error("Register Exception:", error);
+    return NextResponse.json({ error: error?.message || "Error al registrar usuario" }, { status: 500 });
   }
 }
